@@ -780,17 +780,31 @@
       document.head.appendChild(style);
     }
 
+    function sendMusicAction(action, btnEl) {
+      if (btnEl) { btnEl.style.opacity = '0.5'; btnEl.style.pointerEvents = 'none'; }
+      chrome.runtime.sendMessage({ type: 'ym-action', action }, (resp) => {
+        if (btnEl) { btnEl.style.opacity = '1'; btnEl.style.pointerEvents = 'auto'; }
+        if (resp && (resp.title || resp.artist)) {
+          updateMusicWidget(resp);
+        } else {
+          const titleEl = document.getElementById('ch-music-title');
+          if (titleEl) { titleEl.textContent = 'Yandex Music не открыт'; titleEl.style.color = '#ff5252'; }
+          setTimeout(() => { if (titleEl) titleEl.style.color = '#00d4ff'; }, 2000);
+        }
+      });
+    }
+
     document.getElementById('ch-music-play').addEventListener('click', (e) => {
       e.stopPropagation();
-      chrome.runtime.sendMessage({ type: 'ym-action', action: 'playPause' });
+      sendMusicAction('playPause', e.currentTarget);
     });
     document.getElementById('ch-music-next').addEventListener('click', (e) => {
       e.stopPropagation();
-      chrome.runtime.sendMessage({ type: 'ym-action', action: 'next' });
+      sendMusicAction('next', e.currentTarget);
     });
     document.getElementById('ch-music-prev').addEventListener('click', (e) => {
       e.stopPropagation();
-      chrome.runtime.sendMessage({ type: 'ym-action', action: 'prev' });
+      sendMusicAction('prev', e.currentTarget);
     });
 
     let isDragging = false, offsetX, offsetY;
