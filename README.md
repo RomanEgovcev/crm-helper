@@ -72,6 +72,14 @@
 ### Блокировка beforeunload
 - 3 уровня защиты от потери контекста при переходах между страницами
 
+### Виджет Yandex Music
+- Мини-плеер в правом нижнем углу CRM-страницы
+- Кнопки: ⏮ предыдущая / ▶⏸ play-pause / ⏭ следующая / 🔈🔉 громкость
+- Отображает текущий трек (исполнитель — название)
+- Работает через MediaSession API + селекторы Sonata-дизайна Yandex Music
+- Управление громкостью через range slider (+/-10% за клик)
+- Перетаскивание виджета мышкой
+
 ---
 
 ## Установка
@@ -129,10 +137,11 @@
 
 ```
 crm-helper/
-├── manifest.json        MV3, два content script (MAIN + ISOLATED), background worker, alarms
+├── manifest.json        MV3, два content script (MAIN + ISOLATED), background worker, alarms, music script
 ├── content-main.js      MAIN world: перехват WebSocket (SIP INVITE/BYE) + блокировка beforeunload
-├── content.js           ISOLATED: UI, таймеры, перелогин, Telegram, перерывы, звук, phone lookup
-├── background.js        Service worker: CORS-free запросы к num.voxlink.ru + chrome.alarms для перерывов
+├── content.js           ISOLATED: UI, таймеры, перелогин, Telegram, перерывы, звук, phone lookup, music widget
+├── background.js        Service worker: CORS-free запросы к num.voxlink.ru + chrome.alarms + music tab routing
+├── music.js             Content script для music.yandex.ru: play/pause/next/prev/volume через MediaSession + DOM
 ├── popup.html           Панель настроек
 ├── popup.js             Загрузка/сохранение настроек
 ├── popup.css            Тёмная тема
