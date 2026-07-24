@@ -429,17 +429,18 @@
 
   function findQueueButton() {
     let btn = findButtonByText('Встать в очередь');
-    if (btn) return btn;
+    if (btn) { console.log('[CRM Helper] findQueueButton: found by exact text "Встать в очередь"'); return btn; }
     btn = findButtonByText('В queue');
-    if (btn) return btn;
+    if (btn) { console.log('[CRM Helper] findQueueButton: found by "В queue"'); return btn; }
     const queuePatterns = [/очеред/i, /queue/i, /встать/i, /join/i];
     const buttons = document.querySelectorAll('button');
     for (const b of buttons) {
       const txt = b.textContent.trim().toLowerCase();
       for (const p of queuePatterns) {
-        if (p.test(txt)) return b;
+        if (p.test(txt)) { console.log('[CRM Helper] findQueueButton: found by regex', p, 'text:', b.textContent.trim().slice(0, 50)); return b; }
       }
     }
+    console.log('[CRM Helper] findQueueButton: NOT found');
     return null;
   }
 
