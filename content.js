@@ -314,6 +314,7 @@
   function startLineTimer() {
     stopLineTimer();
     lineTimerSeconds = 0;
+    console.log('[CRM Helper] startLineTimer() called, threshold=' + (settings.lineTimerThreshold || 1) + 'min, action=' + settings.lineAction);
     lineTimerInterval = setInterval(() => {
       lineTimerSeconds++;
       const threshold = (settings.lineTimerThreshold || 1) * 60;
@@ -438,6 +439,8 @@
 
   function createBreakIndicator() {
     if (breakIndicator && breakIndicator.parentNode) return breakIndicator;
+    if (!document.body) { console.warn('[CRM Helper] createBreakIndicator: document.body not ready'); return null; }
+    console.log('[CRM Helper] Creating break indicator element');
     breakIndicator = document.createElement('div');
     breakIndicator.id = 'ch-helper-break-indicator';
     breakIndicator.style.cssText = `
@@ -473,6 +476,7 @@
 
   function updateBreakDisplay() {
     const indicator = createBreakIndicator();
+    if (!indicator) return;
     const left = getBreakTimeLeft();
     const min = Math.floor(left / 60);
     const sec = left % 60;
@@ -526,13 +530,17 @@
   }
 
   function scheduleBreakAlarm() {
-    chrome.runtime.sendMessage({ type: 'clearBreakAlarm' }, () => {
-      if (breakPhaseEndAt > Date.now()) {
-        chrome.runtime.sendMessage({ type: 'setBreakAlarm', when: breakPhaseEndAt });
-      } else if (breakPhaseEndAt > 0) {
-        handleBreakPhaseEnd();
-      }
-    });
+    try {
+      chrome.runtime.sendMessage({ type: 'clearBreakAlarm' }, () => {
+        try {
+          if (breakPhaseEndAt > Date.now()) {
+            chrome.runtime.sendMessage({ type: 'setBreakAlarm', when: breakPhaseEndAt });
+          } else if (breakPhaseEndAt > 0) {
+            handleBreakPhaseEnd();
+          }
+        } catch (e) { console.error('[CRM Helper] setBreakAlarm error:', e); }
+      });
+    } catch (e) { console.error('[CRM Helper] clearBreakAlarm error:', e); }
   }
 
   chrome.runtime.onMessage.addListener((msg) => {
@@ -543,16 +551,21 @@
   });
 
   function startBreakTimer() {
+    console.log('[CRM Helper] startBreakTimer() called');
     stopBreakTimer();
     restoreBreakState();
     if (breakPhaseEndAt <= Date.now()) {
       breakPhaseEndAt = Date.now() + (settings.breakWorkMinutes || 60) * 60 * 1000;
       isOnBreak = false;
+      console.log('[CRM Helper] New break phase: work, ends at', new Date(breakPhaseEndAt).toLocaleTimeString());
+    } else {
+      console.log('[CRM Helper] Restored break phase:', isOnBreak ? 'break' : 'work', 'ends at', new Date(breakPhaseEndAt).toLocaleTimeString());
     }
     updateBreakDisplay();
     saveBreakState();
     scheduleBreakAlarm();
     breakDisplayInterval = setInterval(updateBreakDisplay, 1000);
+    console.log('[CRM Helper] Break timer started, indicator interval set');
   }
 
   function stopBreakTimer() {
@@ -638,16 +651,28 @@
   }
 
   function startMonitor() {
+    console.log('[CRM Helper] startMonitor() called, IS_CRM_PAGE=' + IS_CRM_PAGE, 'breakEnabled=' + settings.breakEnabled);
     checkReloginStep();
+    console.log('[CRM Helper] Starting line timer...');
     startLineTimer();
-    if (settings.breakEnabled) startBreakTimer();
+    if (settings.breakEnabled) {
+      console.log('[CRM Helper] Starting break timer...');
+      startBreakTimer();
+    } else {
+      console.log('[CRM Helper] Break timer disabled in settings');
+    }
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => { if (IS_CRM_PAGE) startMonitor(); });
-  } else {
+  function onReady() {
+    console.log('[CRM Helper] DOM ready, starting monitor on CRM=' + IS_CRM_PAGE);
     if (IS_CRM_PAGE) startMonitor();
   }
 
-  console.log('[CRM Helper] Расширение запущено.');
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', onReady);
+  } else {
+    onReady();
+  }
+
+  console.log('[CRM Helper] Расширение запущено, IS_CRM_PAGE=' + IS_CRM_PAGE);
 })();
