@@ -312,33 +312,34 @@
   let dialTimerInterval = null;
   let dialTimerSeconds = 0;
 
-  let lineTimerLogCount = 0;
   function startLineTimer() {
     stopLineTimer();
     lastLineAction = 0;
     lineTimerInterval = setInterval(() => {
       const candidates = document.querySelectorAll('p[class*="css-"]');
       let found = null;
-      const texts = [];
       for (const el of candidates) {
         const t = el.textContent.trim();
-        texts.push(t);
         if (/^\d+:\d{2}$/.test(t) && t !== '00:00') { found = el; }
       }
-      if (lineTimerLogCount < 10) { console.log(`[CRM Helper] LineTimer candidates(${candidates.length}):`, texts.join(' | ')); lineTimerLogCount++; }
       if (!found) return;
       const text = found.textContent.trim();
       const match = text.match(/^(\d+):(\d{2})$/);
       if (!match) return;
       const totalSec = parseInt(match[1]) * 60 + parseInt(match[2]);
       const threshold = (settings.lineTimerThreshold || 1) * 60;
+      if (totalSec % 10 === 0 || totalSec >= threshold - 5) {
+        console.log(`[CRM Helper] LineTimer: ${text} (${totalSec}s) / threshold ${threshold}s`);
+      }
       if (totalSec >= threshold) {
         const now = Date.now();
         if (now - lastLineAction > lineCooldown) {
           lastLineAction = now;
+          console.log(`[CRM Helper] LineTimer: THRESHOLD REACHED (${totalSec}s >= ${threshold}s), action=${settings.lineAction}`);
           if (settings.lineAction === 'rejoin') {
             const btn = findButtonByText('Встать в очередь') || findButtonByText('В queue');
-            if (btn) btn.click();
+            if (btn) { btn.click(); console.log('[CRM Helper] LineTimer: clicked rejoin'); }
+            else console.log('[CRM Helper] LineTimer: rejoin button NOT found');
           } else {
             performRelogin();
           }
