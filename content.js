@@ -397,8 +397,6 @@
   let alarmNodes = [];
   let alarmLoopTimer = null;
 
-  const BREAK_ALARM_NAME = 'crm-helper-break-phase';
-
   function createBreakIndicator() {
     if (breakIndicator && breakIndicator.parentNode) return breakIndicator;
     breakIndicator = document.createElement('div');
@@ -468,22 +466,18 @@
   }
 
   function scheduleBreakAlarm() {
-    chrome.alarms.clear(BREAK_ALARM_NAME, () => {
-      if (breakPhaseEndAt > 0) {
-        const delayMs = breakPhaseEndAt - Date.now();
-        if (delayMs > 0) {
-          chrome.alarms.create(BREAK_ALARM_NAME, { when: breakPhaseEndAt });
-          console.log(`[CRM Helper] Alarm set for ${Math.round(delayMs / 1000)}s`);
-        } else {
-          handleBreakPhaseEnd();
-        }
+    chrome.runtime.sendMessage({ type: 'clearBreakAlarm' }, () => {
+      if (breakPhaseEndAt > Date.now()) {
+        chrome.runtime.sendMessage({ type: 'setBreakAlarm', when: breakPhaseEndAt });
+      } else if (breakPhaseEndAt > 0) {
+        handleBreakPhaseEnd();
       }
     });
   }
 
-  chrome.alarms.onAlarm.addListener((alarm) => {
-    if (alarm.name === BREAK_ALARM_NAME) {
-      console.log('[CRM Helper] Break alarm fired');
+  chrome.runtime.onMessage.addListener((msg) => {
+    if (msg.type === 'breakAlarmFired') {
+      console.log('[CRM Helper] Break alarm received from background');
       handleBreakPhaseEnd();
     }
   });
@@ -505,7 +499,7 @@
     if (breakDisplayInterval) clearInterval(breakDisplayInterval);
     breakDisplayInterval = null;
     breakPhaseEndAt = 0;
-    chrome.alarms.clear(BREAK_ALARM_NAME);
+    chrome.runtime.sendMessage({ type: 'clearBreakAlarm' });
   }
 
   function playBreakBeep() {

@@ -1,3 +1,5 @@
+const BREAK_ALARM_NAME = 'crm-helper-break-phase';
+
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.type === 'lookupPhone') {
     const digits = msg.digits;
@@ -11,5 +13,33 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       })
       .catch(() => sendResponse(null));
     return true;
+  }
+
+  if (msg.type === 'setBreakAlarm') {
+    chrome.alarms.clear(BREAK_ALARM_NAME, () => {
+      if (msg.when && msg.when > Date.now()) {
+        chrome.alarms.create(BREAK_ALARM_NAME, { when: msg.when });
+        console.log(`[BG] Break alarm set for ${Math.round((msg.when - Date.now()) / 1000)}s`);
+      }
+    });
+    sendResponse(true);
+    return false;
+  }
+
+  if (msg.type === 'clearBreakAlarm') {
+    chrome.alarms.clear(BREAK_ALARM_NAME);
+    sendResponse(true);
+    return false;
+  }
+});
+
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name === BREAK_ALARM_NAME) {
+    console.log('[BG] Break alarm fired, notifying content script');
+    chrome.tabs.query({}, (tabs) => {
+      for (const tab of tabs) {
+        chrome.tabs.sendMessage(tab.id, { type: 'breakAlarmFired' }).catch(() => {});
+      }
+    });
   }
 });
