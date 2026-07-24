@@ -1,8 +1,32 @@
 (() => {
   if (location.hostname !== 'music.yandex.ru' && location.hostname !== 'music.yandex.com') return;
 
-  let stateInterval = null;
   let lastState = { title: '', artist: '', playing: false };
+
+  function findBtn(keywords) {
+    const btns = document.querySelectorAll('button');
+    for (const btn of btns) {
+      const label = (btn.getAttribute('aria-label') || '').toLowerCase();
+      const text = (btn.textContent || '').toLowerCase();
+      for (const kw of keywords) {
+        if (label.includes(kw) || text.includes(kw)) return btn;
+      }
+    }
+    return null;
+  }
+
+  function findPlayBtn() {
+    return findBtn(['pause', 'пауза', 'play', 'воспроизвести', 'воспроизведение'])
+      || document.querySelector('.player-controls__btn_play');
+  }
+
+  function findNextBtn() {
+    return findBtn(['next', 'следующ', 'skip']);
+  }
+
+  function findPrevBtn() {
+    return findBtn(['prev', 'предыдущ', 'back']);
+  }
 
   function getState() {
     const meta = navigator.mediaSession?.metadata;
@@ -10,15 +34,10 @@
     const artist = meta?.artist || '';
 
     let playing = false;
-    const playBtn =
-      document.querySelector('.player-controls__btn_play') ||
-      document.querySelector('div[class*="SonataControlsDesktop_sonataButtons"] button[aria-label="\u0412\u043e\u0441\u043f\u0440\u043e\u0438\u0437\u0432\u0435\u0434\u0435\u043d\u0438\u0435"]') ||
-      document.querySelector('div[class*="SonataControlsDesktop_sonataButtons"] button[aria-label="Playback"]') ||
-      document.querySelector('div[class*="SonataControlsDesktop_sonataButtons"] button[aria-label="\u041f\u0430\u0443\u0437\u0430"]') ||
-      document.querySelector('div[class*="SonataControlsDesktop_sonataButtons"] button[aria-label="Pause"]');
+    const playBtn = findPlayBtn();
     if (playBtn) {
-      const label = playBtn.getAttribute('aria-label') || playBtn.textContent || '';
-      playing = /\u041f\u0430\u0443\u0437\u0430|Pause/i.test(label);
+      const label = (playBtn.getAttribute('aria-label') || playBtn.textContent || '').toLowerCase();
+      playing = label.includes('pause') || label.includes('пауза');
     } else if (navigator.mediaSession?.playbackState === 'playing') {
       playing = true;
     }
@@ -26,39 +45,35 @@
     return { title, artist, playing };
   }
 
-  function clickBtn(selectors) {
-    for (const sel of selectors) {
-      const el = document.querySelector(sel);
-      if (el) { el.click(); return true; }
-    }
-    return false;
-  }
-
+  let debugLogged = false;
   function doAction(action) {
+    if (!debugLogged) {
+      debugLogged = true;
+      const allBtns = document.querySelectorAll('button[aria-label]');
+      const labels = Array.from(allBtns).map(b => b.getAttribute('aria-label')).filter(Boolean).slice(0, 40);
+      console.log('[CRM Helper] Available aria-labels:', labels);
+      console.log('[CRM Helper] MediaSession:', navigator.mediaSession?.metadata);
+      console.log('[CRM Helper] PlaybackState:', navigator.mediaSession?.playbackState);
+    }
     switch (action) {
-      case 'playPause':
-        clickBtn([
-          '.player-controls__btn_play',
-          'div[class*="SonataControlsDesktop_sonataButtons"] button[aria-label*="\u0412\u043e\u0441\u043f\u0440\u043e\u0438\u0437\u0432\u0435\u0434"]',
-          'div[class*="SonataControlsDesktop_sonataButtons"] button[aria-label*="Playback"]',
-          'div[class*="SonataControlsDesktop_sonataButtons"] button[aria-label*="\u041f\u0430\u0443\u0437\u0430"]',
-          'div[class*="SonataControlsDesktop_sonataButtons"] button[aria-label*="Pause"]'
-        ]);
+      case 'playPause': {
+        const btn = findPlayBtn();
+        if (btn) { btn.click(); console.log('[CRM Helper] Music: clicked play/pause'); }
+        else console.log('[CRM Helper] Music: play/pause NOT found');
         break;
-      case 'next':
-        clickBtn([
-          '.d-icon_track-next',
-          'div[class*="SonataControlsDesktop_sonataButtons"] button[aria-label*="\u0421\u043b\u0435\u0434\u0443\u044e\u0449"]',
-          'div[class*="SonataControlsDesktop_sonataButtons"] button[aria-label*="Next"]'
-        ]);
+      }
+      case 'next': {
+        const btn = findNextBtn();
+        if (btn) { btn.click(); console.log('[CRM Helper] Music: clicked next'); }
+        else console.log('[CRM Helper] Music: next NOT found');
         break;
-      case 'prev':
-        clickBtn([
-          '.d-icon_track-prev',
-          'div[class*="SonataControlsDesktop_sonataButtons"] button[aria-label*="\u041f\u0440\u0435\u0434\u044b\u0434\u0443\u0449"]',
-          'div[class*="SonataControlsDesktop_sonataButtons"] button[aria-label*="Prev"]'
-        ]);
+      }
+      case 'prev': {
+        const btn = findPrevBtn();
+        if (btn) { btn.click(); console.log('[CRM Helper] Music: clicked prev'); }
+        else console.log('[CRM Helper] Music: prev NOT found');
         break;
+      }
     }
   }
 
@@ -82,7 +97,7 @@
     }
   }
 
-  stateInterval = setInterval(broadcastState, 2000);
+  setInterval(broadcastState, 2000);
   broadcastState();
   console.log('[CRM Helper] Music script loaded on', location.hostname, '- buttons ready');
 })();
