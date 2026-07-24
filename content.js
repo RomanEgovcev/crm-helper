@@ -411,12 +411,12 @@
     if (isOnBreak) {
       const min = Math.floor(breakTimeLeft / 60);
       const sec = breakTimeLeft % 60;
-      indicator.textContent = `☕ Перерыв: ${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+      indicator.textContent = `Перерыв: ${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
       indicator.style.borderColor = '#ffb74d';
     } else {
       const min = Math.floor(breakTimeLeft / 60);
       const sec = breakTimeLeft % 60;
-      indicator.textContent = `💼 Работа: ${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+      indicator.textContent = `Работа: ${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
       indicator.style.borderColor = '#4caf50';
     }
   }
@@ -434,7 +434,7 @@
         breakTimeLeft = saved.breakTimeLeft || 0;
         isOnBreak = saved.isOnBreak || false;
         if (breakTimeLeft > 0) {
-          console.log(`[CRM Helper] Таймер перерыва восстановлен: ${isOnBreak ? 'перерыв' : 'работа'}, осталось ${breakTimeLeft}с`);
+          console.log(`[CRM Helper] Timer restored: ${isOnBreak ? 'break' : 'work'}, ${breakTimeLeft}s left`);
         }
       }
     } catch (e) {}
@@ -447,13 +447,13 @@
       if (isOnBreak) {
         isOnBreak = false;
         breakTimeLeft = (settings.breakWorkMinutes || 60) * 60;
-        sendTelegramRaw('💼 ПЕРЕРЫВ ОКОНЧЕН — работаем!');
+        sendTelegramRaw('Break ended - back to work!');
         startAlarmSound();
-        showBreakAlarmOverlay('💼 ПЕРЕРЫВ ОКОНЧЕН');
+        showBreakAlarmOverlay('BREAK ENDED');
       } else {
         isOnBreak = true;
         breakTimeLeft = (settings.breakRestMinutes || 10) * 60;
-        sendTelegramRaw(`☕ ПЕРЕРЫВ НАЧАЛСЯ — отдыхай ${settings.breakRestMinutes || 10} мин`);
+        sendTelegramRaw(`Break started - ${settings.breakRestMinutes || 10} min`);
         playBreakBeep();
       }
     }
@@ -546,7 +546,7 @@
     overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.8);z-index:999999;display:flex;align-items:center;justify-content:center;flex-direction:column;';
     overlay.innerHTML = `
       <div style="color:#ff5252;font-size:32px;font-weight:bold;margin-bottom:20px;">${text}</div>
-      <button id="ch-helper-stop-alarm" style="background:#ff5252;color:white;border:none;padding:12px 24px;border-radius:8px;font-size:18px;cursor:pointer;">🔇 ВЫКЛЮЧИТЬ ЗВУК</button>
+      <button id="ch-helper-stop-alarm" style="background:#ff5252;color:white;border:none;padding:12px 24px;border-radius:8px;font-size:18px;cursor:pointer;">SILENCE ALARM</button>
     `;
     document.body.appendChild(overlay);
     document.getElementById('ch-helper-stop-alarm').addEventListener('click', stopAlarmSound);
@@ -563,5 +563,5 @@
     startMonitor();
   }
 
-  console.log('[CRM Helper] Расширение запущено.');
+  console.log('[CRM Helper] Extension started.');
 })();

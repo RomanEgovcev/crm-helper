@@ -1,111 +1,86 @@
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
 body {
   width: 320px;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: #1a1a2e;
-  color: #e0e0e0;
-}
-
-.container {
   padding: 16px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 14px;
+  color: #e0e0e0;
+  background: #1a1a2e;
+  margin: 0;
 }
 
-h1 {
-  font-size: 18px;
-  font-weight: 600;
-  text-align: center;
-  margin-bottom: 16px;
+h2 {
+  font-size: 16px;
+  margin: 0 0 12px 0;
   color: #00d4ff;
 }
 
 .section {
-  background: #16213e;
-  border-radius: 8px;
-  margin-bottom: 12px;
-  overflow: hidden;
-  border: 1px solid #0f3460;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #333;
 }
 
-.section-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
+.section:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
 }
 
 .section-title {
-  font-size: 13px;
-  font-weight: 500;
-}
-
-.section-body {
-  padding: 4px 12px 12px;
-  transition: opacity 0.2s;
-}
-
-.label {
-  display: block;
   font-size: 12px;
-  color: #8899aa;
-  margin-bottom: 4px;
-  margin-top: 8px;
+  font-weight: 600;
+  color: #aaa;
+  text-transform: uppercase;
+  margin-bottom: 8px;
 }
 
-.input-row {
+.row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: space-between;
+  margin-bottom: 6px;
 }
 
-.slider-input {
-  flex: 1;
-  -webkit-appearance: none;
-  appearance: none;
-  height: 4px;
-  border-radius: 2px;
-  background: #0f3460;
-  outline: none;
+label {
+  font-size: 13px;
 }
 
-.slider-input::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: #00d4ff;
-  cursor: pointer;
-  border: 2px solid #1a1a2e;
+input[type="number"],
+input[type="text"],
+select {
+  width: 70px;
+  padding: 4px 6px;
+  background: #16213e;
+  border: 1px solid #444;
+  border-radius: 4px;
+  color: #e0e0e0;
+  font-size: 13px;
 }
 
-.value-display {
-  font-size: 14px;
-  font-weight: 600;
-  color: #00d4ff;
-  min-width: 36px;
-  text-align: right;
-}
-
-.hint {
+input[type="text"] {
+  width: 180px;
   font-size: 11px;
-  color: #556677;
-  margin-top: 6px;
 }
 
-.toggle {
+input[type="text"].token {
+  width: 280px;
+  font-family: monospace;
+}
+
+input[type="text"].chatid {
+  width: 100px;
+}
+
+select {
+  width: auto;
+}
+
+.switch {
   position: relative;
-  display: inline-block;
   width: 36px;
   height: 20px;
-  flex-shrink: 0;
 }
 
-.toggle input {
+.switch input {
   opacity: 0;
   width: 0;
   height: 0;
@@ -114,17 +89,14 @@ h1 {
 .slider {
   position: absolute;
   cursor: pointer;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: #333;
-  border-radius: 20px;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: #444;
+  border-radius: 10px;
   transition: 0.3s;
 }
 
-.slider::before {
-  content: '';
+.slider:before {
+  content: "";
   position: absolute;
   height: 14px;
   width: 14px;
@@ -135,63 +107,10 @@ h1 {
   transition: 0.3s;
 }
 
-.toggle input:checked + .slider {
+input:checked + .slider {
   background: #00d4ff;
 }
 
-.toggle input:checked + .slider::before {
+input:checked + .slider:before {
   transform: translateX(16px);
-}
-
-.select {
-  width: 100%;
-  padding: 6px 8px;
-  border-radius: 6px;
-  border: 1px solid #0f3460;
-  background: #1a1a2e;
-  color: #e0e0e0;
-  font-size: 13px;
-  outline: none;
-  margin-top: 2px;
-}
-
-.select:focus {
-  border-color: #00d4ff;
-}
-
-.btn-test {
-  display: block;
-  width: 100%;
-  margin-top: 10px;
-  padding: 8px;
-  border: 1px solid #0f3460;
-  border-radius: 6px;
-  background: #16213e;
-  color: #00d4ff;
-  font-size: 13px;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.btn-test:hover {
-  background: #0f3460;
-}
-
-.btn-test:active {
-  background: #00d4ff;
-  color: #1a1a2e;
-}
-
-.status {
-  text-align: center;
-  font-size: 12px;
-  color: #00ff88;
-  opacity: 0;
-  transition: opacity 0.3s;
-  margin-top: 4px;
-  height: 16px;
-}
-
-.status.show {
-  opacity: 1;
 }
