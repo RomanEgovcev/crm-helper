@@ -112,6 +112,22 @@
         else console.log('[CRM Helper] Music: prev NOT found');
         break;
       }
+      case 'volumeDown': {
+        const audio = document.querySelector('audio');
+        if (audio) {
+          audio.volume = Math.max(0, audio.volume - 0.1);
+          console.log('[CRM Helper] Volume down:', Math.round(audio.volume * 100) + '%');
+        } else { console.log('[CRM Helper] No audio element found'); }
+        break;
+      }
+      case 'volumeUp': {
+        const audio = document.querySelector('audio');
+        if (audio) {
+          audio.volume = Math.min(1, audio.volume + 0.1);
+          console.log('[CRM Helper] Volume up:', Math.round(audio.volume * 100) + '%');
+        } else { console.log('[CRM Helper] No audio element found'); }
+        break;
+      }
     }
   }
 

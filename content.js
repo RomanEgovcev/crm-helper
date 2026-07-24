@@ -751,7 +751,7 @@
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace;
       box-shadow: 0 2px 12px rgba(0,0,0,0.4);
       display: flex; align-items: center; gap: 6px;
-      max-width: 300px; cursor: move; user-select: none;
+      max-width: 350px; cursor: move; user-select: none;
     `;
     musicWidget.innerHTML = `
       <span id="ch-music-note" style="font-size:14px">\u266b</span>
@@ -763,6 +763,9 @@
       <button id="ch-music-prev" style="background:none;border:none;color:#aaa;cursor:pointer;font-size:13px;padding:2px" title="Prev">\u23ee</button>
       <button id="ch-music-play" style="background:none;border:none;color:#fff;cursor:pointer;font-size:14px;padding:2px" title="Play/Pause">\u25b6</button>
       <button id="ch-music-next" style="background:none;border:none;color:#aaa;cursor:pointer;font-size:13px;padding:2px" title="Next">\u23ed</button>
+      <span style="color:#555;margin:0 1px">|</span>
+      <button id="ch-music-voldn" style="background:none;border:none;color:#aaa;cursor:pointer;font-size:13px;padding:2px" title="Vol -">\ud83d\udd07</button>
+      <button id="ch-music-volup" style="background:none;border:none;color:#aaa;cursor:pointer;font-size:13px;padding:2px" title="Vol +">\ud83d\udd0a</button>
     `;
     document.body.appendChild(musicWidget);
     if (!document.getElementById('ch-helper-music-css')) {
@@ -788,6 +791,8 @@
     document.getElementById('ch-music-play').addEventListener('click', (e) => { e.stopPropagation(); sendMusicAction('playPause', e.currentTarget); });
     document.getElementById('ch-music-next').addEventListener('click', (e) => { e.stopPropagation(); sendMusicAction('next', e.currentTarget); });
     document.getElementById('ch-music-prev').addEventListener('click', (e) => { e.stopPropagation(); sendMusicAction('prev', e.currentTarget); });
+    document.getElementById('ch-music-voldn').addEventListener('click', (e) => { e.stopPropagation(); sendMusicAction('volumeDown', e.currentTarget); });
+    document.getElementById('ch-music-volup').addEventListener('click', (e) => { e.stopPropagation(); sendMusicAction('volumeUp', e.currentTarget); });
     let dragging = false, ox, oy;
     musicWidget.addEventListener('mousedown', (e) => { if (e.target.tagName === 'BUTTON') return; dragging = true; ox = e.clientX - musicWidget.getBoundingClientRect().left; oy = e.clientY - musicWidget.getBoundingClientRect().top; e.preventDefault(); });
     document.addEventListener('mousemove', (e) => { if (!dragging) return; musicWidget.style.left = (e.clientX - ox) + 'px'; musicWidget.style.top = (e.clientY - oy) + 'px'; musicWidget.style.bottom = 'auto'; musicWidget.style.right = 'auto'; });
