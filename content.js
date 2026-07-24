@@ -10,8 +10,8 @@
     breakEnabled: true,
     breakWorkMinutes: 60,
     breakRestMinutes: 10,
-    telegramBotToken: '8676041886:AAF7z6Okysn167jN3bsw2W4CUzmr_dnnMlk',
-    telegramChatId: '708684405'
+    telegramBotToken: '',
+    telegramChatId: ''
   };
 
   let settings = { ...DEFAULT_SETTINGS };
@@ -24,8 +24,6 @@
     if (result.settings) {
       settings = { ...DEFAULT_SETTINGS, ...result.settings };
     }
-    if (!settings.telegramBotToken) settings.telegramBotToken = DEFAULT_SETTINGS.telegramBotToken;
-    if (!settings.telegramChatId) settings.telegramChatId = DEFAULT_SETTINGS.telegramChatId;
   });
 
   let prevBreakEnabled = null;

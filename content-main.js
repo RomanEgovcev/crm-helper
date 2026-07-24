@@ -40,25 +40,26 @@
       const toMatch = data.match(/To:\s*<sip:(\d+)@/);
       const uriMatch = data.match(/INVITE sip:(\d+)@/);
       const callTypeMatch = data.match(/call-type:\s*(\w+)/);
-      const claimMatch = data.match(/Applecationid:\s*(\d+)/);
 
-      if (uriMatch) {
-        const uriNumber = extractDigits(uriMatch[1]);
-        const direction = callTypeMatch ? callTypeMatch[1] : null;
-        let number = null;
-        let dir = null;
+      const uriNumber = uriMatch ? extractDigits(uriMatch[1]) : null;
+      const fromNumber = fromMatch ? extractDigits(fromMatch[1]) : null;
+      const toNumber = toMatch ? extractDigits(toMatch[1]) : null;
 
-        if (direction === 'incoming') {
-          number = fromMatch ? extractDigits(fromMatch[1]) : uriNumber;
-          dir = 'incoming';
-        } else if (direction === 'outgoing' || !direction) {
-          number = uriNumber;
-          dir = 'outgoing';
-        }
+      const direction = callTypeMatch ? callTypeMatch[1] : null;
 
-        if (number && number.length >= 10) {
-          dispatchCaller(number, dir);
-        }
+      let number = null;
+      let dir = null;
+
+      if (direction === 'incoming') {
+        number = fromNumber || toNumber || uriNumber;
+        dir = 'incoming';
+      } else if (direction === 'outgoing' || !direction) {
+        number = uriNumber || fromNumber || toNumber;
+        dir = 'outgoing';
+      }
+
+      if (number && number.length >= 10) {
+        dispatchCaller(number, dir);
       }
     }
 
