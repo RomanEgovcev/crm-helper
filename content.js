@@ -1,6 +1,6 @@
 (() => {
-  const CRM_HOST = 'victory-crm.ru';
-  const IS_CRM_PAGE = location.hostname.includes(CRM_HOST);
+  const CRM_HOSTS = ['victory-crm.ru', 'ect-russia.ru'];
+  const IS_CRM_PAGE = CRM_HOSTS.some(h => location.hostname.includes(h));
 
   const DEFAULT_SETTINGS = {
     lineTimerEnabled: true,
