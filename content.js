@@ -730,68 +730,22 @@
     document.getElementById('ch-helper-stop-alarm').addEventListener('click', stopAlarmSound);
   }
 
+  /* --- Yandex Music Widget (disabled, use "Yandex Music Control" extension) ---
   let musicWidget = null;
   let musicState = { title: '', artist: '', playing: false };
 
-  function createMusicWidget() {
-    if (musicWidget && musicWidget.parentNode) return musicWidget;
-    if (!document.body) { console.warn('[CRM Helper] createMusicWidget: document.body not ready'); return null; }
-    console.log('[CRM Helper] Creating music widget');
+  function createMusicWidget() { ... }
+  function updateMusicWidget(state) { ... }
 
-    musicWidget = document.createElement('div');
-    musicWidget.id = 'ch-helper-music';
-    musicWidget.style.cssText = `
-      position: fixed;
-      bottom: 10px;
-      left: 10px;
-      background: linear-gradient(135deg, #0d1b2a, #1b2838);
-      color: #e0e0e0;
-      padding: 6px 10px;
-      border-radius: 8px;
-      font-size: 12px;
-      z-index: 99999;
-      border: 1px solid #444;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.4);
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      max-width: 300px;
-      cursor: move;
-      user-select: none;
-    `;
-    musicWidget.innerHTML = `
-      <span id="ch-music-note" style="font-size:14px">♫</span>
-      <span id="ch-music-info" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">
-        <span id="ch-music-artist" style="color:#aaa"></span>
-        <span id="ch-music-sep" style="color:#555;margin:0 3px">—</span>
-        <span id="ch-music-title" style="color:#00d4ff"></span>
-      </span>
-      <button id="ch-music-prev" style="background:none;border:none;color:#aaa;cursor:pointer;font-size:13px;padding:2px" title="Предыдущая">⏮</button>
-      <button id="ch-music-play" style="background:none;border:none;color:#fff;cursor:pointer;font-size:14px;padding:2px" title="Play/Pause">▶</button>
-      <button id="ch-music-next" style="background:none;border:none;color:#aaa;cursor:pointer;font-size:13px;padding:2px" title="Следующая">⏭</button>
-    `;
-    document.body.appendChild(musicWidget);
-
-    if (!document.getElementById('ch-helper-music-css')) {
-      const style = document.createElement('style');
-      style.id = 'ch-helper-music-css';
-      style.textContent = '@keyframes ch-music-pulse{0%,100%{opacity:1}50%{opacity:0.4}}';
-      document.head.appendChild(style);
+  chrome.runtime.onMessage.addListener((msg) => {
+    if (msg.type === 'ym-stateUpdate' && IS_CRM_PAGE) {
+      if (settings.musicWidgetEnabled !== false) {
+        createMusicWidget();
+        updateMusicWidget(msg.state);
+      }
     }
-
-    function sendMusicAction(action, btnEl) {
-      if (btnEl) { btnEl.style.opacity = '0.5'; btnEl.style.pointerEvents = 'none'; }
-      chrome.runtime.sendMessage({ type: 'ym-action', action }, (resp) => {
-        if (btnEl) { btnEl.style.opacity = '1'; btnEl.style.pointerEvents = 'auto'; }
-        if (resp && (resp.title || resp.artist)) {
-          updateMusicWidget(resp);
-        } else {
-          const titleEl = document.getElementById('ch-music-title');
-          if (titleEl) { titleEl.textContent = 'Yandex Music не открыт'; titleEl.style.color = '#ff5252'; }
-          setTimeout(() => { if (titleEl) titleEl.style.color = '#00d4ff'; }, 2000);
-        }
-      });
+  });
+  --- end Yandex Music Widget --- */
     }
 
     document.getElementById('ch-music-play').addEventListener('click', (e) => {
@@ -864,16 +818,6 @@
       startBreakTimer();
     } else {
       console.log('[CRM Helper] Break timer disabled in settings');
-    }
-    if (settings.musicWidgetEnabled !== false) {
-      createMusicWidget();
-      chrome.runtime.sendMessage({ type: 'ym-getState' }, (resp) => {
-        if (resp && (resp.title || resp.artist)) {
-          updateMusicWidget(resp);
-        } else {
-          updateMusicWidget({ title: '', artist: '', playing: false });
-        }
-      });
     }
   }
 

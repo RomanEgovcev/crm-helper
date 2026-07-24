@@ -1,6 +1,13 @@
 const BREAK_ALARM_NAME = 'crm-helper-break-phase';
 
+/* --- Yandex Music (disabled, use "Yandex Music Control" extension) ---
 let lastMusicState = { title: '', artist: '', playing: false };
+
+if (msg.type === 'ym-stateChanged') { ... }
+if (msg.type === 'ym-getState') { ... }
+if (msg.type === 'ym-action') { ... }
+function findYandexMusicTab(callback) { ... }
+--- end Yandex Music --- */
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   try {
@@ -36,105 +43,12 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       sendResponse(true);
       return false;
     }
-
-    if (msg.type === 'ym-stateChanged') {
-      lastMusicState = msg.state;
-      chrome.tabs.query({}, (tabs) => {
-        try {
-          for (const tab of tabs) {
-            if (tab.url && (tab.url.includes('victory-crm.ru') || tab.url.includes('ect-russia.ru'))) {
-              chrome.tabs.sendMessage(tab.id, { type: 'ym-stateUpdate', state: msg.state }).catch(() => {});
-            }
-          }
-        } catch (e) { console.error('[BG] ym-stateChanged notify error:', e); }
-      });
-      sendResponse(true);
-      return false;
-    }
-
-    if (msg.type === 'ym-getState') {
-      try {
-        findYandexMusicTab((tab) => {
-          try {
-            if (tab) {
-              chrome.tabs.sendMessage(tab.id, { type: 'ym-getState' }, (resp) => {
-                try {
-                  if (chrome.runtime.lastError) {
-                    sendResponse(lastMusicState);
-                  } else if (resp) {
-                    lastMusicState = resp;
-                    sendResponse(resp);
-                  } else {
-                    sendResponse(lastMusicState);
-                  }
-                } catch (e) { sendResponse(lastMusicState); }
-              });
-            } else {
-              sendResponse(lastMusicState);
-            }
-          } catch (e) { sendResponse(lastMusicState); }
-        });
-      } catch (e) {
-        console.error('[BG] ym-getState error:', e);
-        sendResponse(lastMusicState);
-      }
-      return true;
-    }
-
-    if (msg.type === 'ym-action') {
-      try {
-        findYandexMusicTab((tab) => {
-          try {
-            if (tab) {
-              chrome.tabs.sendMessage(tab.id, { type: 'ym-action', action: msg.action }, (resp) => {
-                try {
-                  if (chrome.runtime.lastError || !resp) {
-                    sendResponse(null);
-                  } else {
-                    lastMusicState = resp;
-                    chrome.tabs.query({}, (tabs) => {
-                      try {
-                        for (const t of tabs) {
-                          if (t.url && (t.url.includes('victory-crm.ru') || t.url.includes('ect-russia.ru'))) {
-                            chrome.tabs.sendMessage(t.id, { type: 'ym-stateUpdate', state: resp }).catch(() => {});
-                          }
-                        }
-                      } catch (e) {}
-                    });
-                    sendResponse(resp);
-                  }
-                } catch (e) { sendResponse(null); }
-              });
-            } else {
-              sendResponse(null);
-            }
-          } catch (e) { sendResponse(null); }
-        });
-      } catch (e) {
-        console.error('[BG] ym-action error:', e);
-        sendResponse(null);
-      }
-      return true;
-    }
   } catch (e) {
     console.error('[BG] onMessage error:', e);
     try { sendResponse(null); } catch (e2) {}
     return false;
   }
 });
-
-function findYandexMusicTab(callback) {
-  try {
-    chrome.tabs.query({ url: ['*://music.yandex.ru/*', '*://music.yandex.com/*'] }, (tabs) => {
-      try {
-        callback(tabs && tabs.length > 0 ? tabs[0] : null);
-      } catch (e) { callback(null); }
-    });
-  } catch (e) {
-    console.error('[BG] findYandexMusicTab error:', e);
-    callback(null);
-  }
-}
 
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === BREAK_ALARM_NAME) {
