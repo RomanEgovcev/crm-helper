@@ -123,7 +123,10 @@
   }
 
   async function sendTelegramRaw(text, replyMarkup) {
-    if (!settings.telegramBotToken || !settings.telegramChatId) return false;
+    if (!settings.telegramBotToken || !settings.telegramChatId) {
+      console.warn('[CRM Helper] sendTelegramRaw: пустой token или chatId');
+      return false;
+    }
     try {
       const body = { chat_id: settings.telegramChatId, text: text };
       if (replyMarkup) body.reply_markup = replyMarkup;
@@ -172,6 +175,10 @@
 
   async function trySendToTelegram(number, direction) {
     const info = findInfoField();
+    if (!settings.telegramBotToken || !settings.telegramChatId) {
+      console.warn('[CRM Helper] Telegram НЕ настроен: botToken=' + (settings.telegramBotToken ? 'есть' : 'ПУСТ') + ', chatId=' + (settings.telegramChatId ? 'есть' : 'ПУСТ'));
+      return;
+    }
     await sendToTelegram(number, info);
   }
 
