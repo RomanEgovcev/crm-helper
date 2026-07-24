@@ -15,29 +15,33 @@
     btn.dispatchEvent(new MouseEvent('click', opts));
   }
 
-  function findBtn(keywords) {
-    const btns = document.querySelectorAll('button');
+  function findByLabel(keywords) {
+    const btns = document.querySelectorAll('button[aria-label]');
     for (const btn of btns) {
       const label = (btn.getAttribute('aria-label') || '').toLowerCase();
-      const text = (btn.textContent || '').toLowerCase();
       for (const kw of keywords) {
-        if (label.includes(kw) || text.includes(kw)) return btn;
+        if (label.includes(kw)) return btn;
       }
     }
     return null;
   }
 
   function findPlayBtn() {
-    return findBtn(['pause', 'пауза', 'play', 'воспроизвести', 'воспроизведение'])
-      || document.querySelector('.player-controls__btn_play');
+    const btn = findByLabel(['пауза', 'pause'])
+      || findByLabel(['воспроизвед', 'play']);
+    if (btn) {
+      const r = btn.getBoundingClientRect();
+      console.log('[CRM Helper] Found play btn:', btn.getAttribute('aria-label'), 'rect:', Math.round(r.x), Math.round(r.y), Math.round(r.width), 'x', Math.round(r.height), 'tag:', btn.tagName, 'parent:', btn.parentElement?.className?.slice(0, 60));
+    }
+    return btn;
   }
 
   function findNextBtn() {
-    return findBtn(['next', 'следующ', 'skip']);
+    return findByLabel(['следующ', 'next', 'skip']);
   }
 
   function findPrevBtn() {
-    return findBtn(['prev', 'предыдущ', 'back']);
+    return findByLabel(['предыдущ', 'prev', 'back']);
   }
 
   function getState() {
@@ -70,8 +74,25 @@
     switch (action) {
       case 'playPause': {
         const btn = findPlayBtn();
-        if (btn) { simulateClick(btn); console.log('[CRM Helper] Music: clicked play/pause'); }
-        else console.log('[CRM Helper] Music: play/pause NOT found');
+        if (btn) {
+          const label = (btn.getAttribute('aria-label') || '').toLowerCase();
+          const audio = document.querySelector('audio');
+          if (audio) {
+            if (audio.paused) { audio.play().catch(()=>{}); console.log('[CRM Helper] Audio.play() called'); }
+            else { audio.pause(); console.log('[CRM Helper] Audio.pause() called'); }
+          } else {
+            simulateClick(btn);
+            console.log('[CRM Helper] Music: clicked play/pause via DOM');
+          }
+        } else {
+          console.log('[CRM Helper] Music: play/pause NOT found');
+          const audio = document.querySelector('audio');
+          if (audio) {
+            if (audio.paused) audio.play().catch(()=>{});
+            else audio.pause();
+            console.log('[CRM Helper] Audio fallback (no button found)');
+          }
+        }
         break;
       }
       case 'next': {
