@@ -27,13 +27,18 @@
   }
 
   function findPlayBtn() {
-    const btn = findByLabel(['пауза', 'pause'])
-      || findByLabel(['воспроизвед', 'play']);
-    if (btn) {
-      const r = btn.getBoundingClientRect();
-      console.log('[CRM Helper] Found play btn:', btn.getAttribute('aria-label'), 'rect:', Math.round(r.x), Math.round(r.y), Math.round(r.width), 'x', Math.round(r.height), 'tag:', btn.tagName, 'parent:', btn.parentElement?.className?.slice(0, 60));
+    const playerRoot = document.querySelector('[class*="VibePlayerControls_root"]');
+    const scope = playerRoot || document;
+    const btns = scope.querySelectorAll('button[aria-label]');
+    for (const btn of btns) {
+      const label = (btn.getAttribute('aria-label') || '').toLowerCase();
+      if (label.includes('пауза') || label.includes('pause') || label.includes('воспроизвед') || label.includes('play')) {
+        const r = btn.getBoundingClientRect();
+        console.log('[CRM Helper] Found play btn:', btn.getAttribute('aria-label'), 'rect:', Math.round(r.x), Math.round(r.y), Math.round(r.width), 'x', Math.round(r.height), 'tag:', btn.tagName, 'parent:', btn.parentElement?.className?.slice(0, 60));
+        return btn;
+      }
     }
-    return btn;
+    return null;
   }
 
   function findNextBtn() {
