@@ -119,13 +119,17 @@
     try {
       const body = { chat_id: settings.telegramChatId, text: text };
       if (replyMarkup) body.reply_markup = replyMarkup;
+      console.log('[CRM Helper] Telegram body:', JSON.stringify(body).substring(0, 200));
       const response = await fetch(`https://api.telegram.org/bot${settings.telegramBotToken}/sendMessage`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
       });
+      const result = await response.json();
+      console.log('[CRM Helper] Telegram response:', JSON.stringify(result).substring(0, 200));
       return response.ok;
     } catch (e) {
+      console.error('[CRM Helper] Ошибка Telegram:', e);
       return false;
     }
   }
@@ -156,6 +160,11 @@
     };
 
     return sendTelegramRaw(lines.join('\n'), keyboard);
+  }
+
+  async function trySendToTelegram(number, direction) {
+    const info = findInfoField();
+    await sendToTelegram(number, info);
   }
 
   function showCallerPopupRaw(number, direction) {
