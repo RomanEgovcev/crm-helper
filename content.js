@@ -508,6 +508,7 @@
   let alarmAudioCtx = null;
   let alarmNodes = [];
   let alarmLoopTimer = null;
+  let breakPhaseTransitioning = false;
 
   function createBreakIndicator() {
     if (breakIndicator && breakIndicator.parentNode) return breakIndicator;
@@ -590,6 +591,8 @@
   function handleBreakPhaseEnd() {
     console.log(`[CRM Helper] handleBreakPhaseEnd called: isOnBreak=${isOnBreak}, breakPhaseEndAt=${breakPhaseEndAt}`);
     if (breakPhaseEndAt <= 0) return;
+    if (breakPhaseTransitioning) { console.log('[CRM Helper] handleBreakPhaseEnd: skipped (transitioning)'); return; }
+    breakPhaseTransitioning = true;
     if (isOnBreak) {
       isOnBreak = false;
       breakPhaseEndAt = Date.now() + (settings.breakWorkMinutes || 60) * 60 * 1000;
@@ -607,6 +610,7 @@
     updateBreakDisplay();
     saveBreakState();
     scheduleBreakAlarm();
+    setTimeout(() => { breakPhaseTransitioning = false; }, 500);
   }
 
   function scheduleBreakAlarm() {
