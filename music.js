@@ -12,11 +12,13 @@
     let playing = false;
     const playBtn =
       document.querySelector('.player-controls__btn_play') ||
-      document.querySelector('div[class*="SonataControlsDesktop_sonataButtons"] button[aria-label="Пауза"]') ||
+      document.querySelector('div[class*="SonataControlsDesktop_sonataButtons"] button[aria-label="\u0412\u043e\u0441\u043f\u0440\u043e\u0438\u0437\u0432\u0435\u0434\u0435\u043d\u0438\u0435"]') ||
+      document.querySelector('div[class*="SonataControlsDesktop_sonataButtons"] button[aria-label="Playback"]') ||
+      document.querySelector('div[class*="SonataControlsDesktop_sonataButtons"] button[aria-label="\u041f\u0430\u0443\u0437\u0430"]') ||
       document.querySelector('div[class*="SonataControlsDesktop_sonataButtons"] button[aria-label="Pause"]');
     if (playBtn) {
       const label = playBtn.getAttribute('aria-label') || playBtn.textContent || '';
-      playing = /Пауза|Pause/i.test(label);
+      playing = /\u041f\u0430\u0443\u0437\u0430|Pause/i.test(label);
     } else if (navigator.mediaSession?.playbackState === 'playing') {
       playing = true;
     }
@@ -24,7 +26,7 @@
     return { title, artist, playing };
   }
 
-  function clickButton(selectors) {
+  function clickBtn(selectors) {
     for (const sel of selectors) {
       const el = document.querySelector(sel);
       if (el) { el.click(); return true; }
@@ -35,25 +37,25 @@
   function doAction(action) {
     switch (action) {
       case 'playPause':
-        clickButton([
+        clickBtn([
           '.player-controls__btn_play',
-          'div[class*="SonataControlsDesktop_sonataButtons"] button[aria-label*="Воспроизведен"]',
+          'div[class*="SonataControlsDesktop_sonataButtons"] button[aria-label*="\u0412\u043e\u0441\u043f\u0440\u043e\u0438\u0437\u0432\u0435\u0434"]',
           'div[class*="SonataControlsDesktop_sonataButtons"] button[aria-label*="Playback"]',
-          'div[class*="SonataControlsDesktop_sonataButtons"] button[aria-label*="Пауза"]',
+          'div[class*="SonataControlsDesktop_sonataButtons"] button[aria-label*="\u041f\u0430\u0443\u0437\u0430"]',
           'div[class*="SonataControlsDesktop_sonataButtons"] button[aria-label*="Pause"]'
         ]);
         break;
       case 'next':
-        clickButton([
+        clickBtn([
           '.d-icon_track-next',
-          'div[class*="SonataControlsDesktop_sonataButtons"] button[aria-label*="Следующ"]',
+          'div[class*="SonataControlsDesktop_sonataButtons"] button[aria-label*="\u0421\u043b\u0435\u0434\u0443\u044e\u0449"]',
           'div[class*="SonataControlsDesktop_sonataButtons"] button[aria-label*="Next"]'
         ]);
         break;
       case 'prev':
-        clickButton([
+        clickBtn([
           '.d-icon_track-prev',
-          'div[class*="SonataControlsDesktop_sonataButtons"] button[aria-label*="Предыдущ"]',
+          'div[class*="SonataControlsDesktop_sonataButtons"] button[aria-label*="\u041f\u0440\u0435\u0434\u044b\u0434\u0443\u0449"]',
           'div[class*="SonataControlsDesktop_sonataButtons"] button[aria-label*="Prev"]'
         ]);
         break;
@@ -82,6 +84,5 @@
 
   stateInterval = setInterval(broadcastState, 2000);
   broadcastState();
-
   console.log('[CRM Helper] Music script loaded on', location.hostname);
 })();
