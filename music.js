@@ -3,6 +3,18 @@
 
   let lastState = { title: '', artist: '', playing: false };
 
+  function simulateClick(btn) {
+    const rect = btn.getBoundingClientRect();
+    const x = rect.left + rect.width / 2;
+    const y = rect.top + rect.height / 2;
+    const opts = { bubbles: true, cancelable: true, clientX: x, clientY: y, view: window };
+    btn.dispatchEvent(new PointerEvent('pointerdown', { ...opts, pointerId: 1, pointerType: 'mouse' }));
+    btn.dispatchEvent(new MouseEvent('mousedown', opts));
+    btn.dispatchEvent(new PointerEvent('pointerup', { ...opts, pointerId: 1, pointerType: 'mouse' }));
+    btn.dispatchEvent(new MouseEvent('mouseup', opts));
+    btn.dispatchEvent(new MouseEvent('click', opts));
+  }
+
   function findBtn(keywords) {
     const btns = document.querySelectorAll('button');
     for (const btn of btns) {
@@ -58,19 +70,19 @@
     switch (action) {
       case 'playPause': {
         const btn = findPlayBtn();
-        if (btn) { btn.click(); console.log('[CRM Helper] Music: clicked play/pause'); }
+        if (btn) { simulateClick(btn); console.log('[CRM Helper] Music: clicked play/pause'); }
         else console.log('[CRM Helper] Music: play/pause NOT found');
         break;
       }
       case 'next': {
         const btn = findNextBtn();
-        if (btn) { btn.click(); console.log('[CRM Helper] Music: clicked next'); }
+        if (btn) { simulateClick(btn); console.log('[CRM Helper] Music: clicked next'); }
         else console.log('[CRM Helper] Music: next NOT found');
         break;
       }
       case 'prev': {
         const btn = findPrevBtn();
-        if (btn) { btn.click(); console.log('[CRM Helper] Music: clicked prev'); }
+        if (btn) { simulateClick(btn); console.log('[CRM Helper] Music: clicked prev'); }
         else console.log('[CRM Helper] Music: prev NOT found');
         break;
       }
