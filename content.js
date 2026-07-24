@@ -315,20 +315,25 @@
   function startLineTimer() {
     stopLineTimer();
     lastLineAction = 0;
+    let tickCount = 0;
     lineTimerInterval = setInterval(() => {
-      const candidates = document.querySelectorAll('p[class*="css-"]');
+      tickCount++;
+      const candidates = document.querySelectorAll('p[class*="css-"], span[class*="css-"], div[class*="css-"]');
       let found = null;
       for (const el of candidates) {
         const t = el.textContent.trim();
         if (/^\d+:\d{2}$/.test(t) && t !== '00:00') { found = el; }
       }
-      if (!found) return;
+      if (!found) {
+        if (tickCount % 15 === 0) console.log(`[CRM Helper] LineTimer: no timer element found (${candidates.length} p-css candidates)`);
+        return;
+      }
       const text = found.textContent.trim();
       const match = text.match(/^(\d+):(\d{2})$/);
       if (!match) return;
       const totalSec = parseInt(match[1]) * 60 + parseInt(match[2]);
       const threshold = (settings.lineTimerThreshold || 1) * 60;
-      if (totalSec % 10 === 0 || totalSec >= threshold - 5) {
+      if (totalSec % 10 === 0 || totalSec >= threshold - 10 || tickCount <= 3) {
         console.log(`[CRM Helper] LineTimer: ${text} (${totalSec}s) / threshold ${threshold}s`);
       }
       if (totalSec >= threshold) {
@@ -493,6 +498,10 @@
     const left = getBreakTimeLeft();
     const min = Math.floor(left / 60);
     const sec = left % 60;
+    if (left <= 0 && breakPhaseEndAt > 0) {
+      handleBreakPhaseEnd();
+      return;
+    }
     if (isOnBreak) {
       indicator.textContent = `\u2615 Перерыв: ${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
       indicator.style.borderColor = '#ffb74d';
@@ -525,6 +534,7 @@
   }
 
   function handleBreakPhaseEnd() {
+    if (breakPhaseEndAt <= 0) return;
     if (isOnBreak) {
       isOnBreak = false;
       breakPhaseEndAt = Date.now() + (settings.breakWorkMinutes || 60) * 60 * 1000;
