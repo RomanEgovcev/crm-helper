@@ -1,87 +1,76 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CRM Helper</title>
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
-  <h2>CRM Helper</h2>
+  <div class="container">
+    <h1>CRM Helper</h1>
 
-  <div class="section">
-    <div class="section-title">Таймер на линии</div>
-    <div class="row">
-      <label>Включить</label>
-      <div class="switch"><input type="checkbox" id="lineTimerEnabled"><label class="slider" for="lineTimerEnabled"></label></div>
+    <div class="section">
+      <div class="section-header">
+        <label class="toggle">
+          <input type="checkbox" id="lineTimerEnabled" checked>
+          <span class="slider"></span>
+        </label>
+        <span class="section-title">Контроль времени на линии</span>
+      </div>
+      <div class="section-body" id="lineTimerBody">
+        <label class="label">Порог (секунды):</label>
+        <div class="input-row">
+          <input type="range" id="lineTimerThreshold" min="30" max="300" value="90" class="slider-input">
+          <span class="value-display" id="lineTimerValue">90</span>
+        </div>
+        <div class="hint">Выход и повторный вход в очередь при превышении</div>
+      </div>
     </div>
-    <div class="row">
-      <label>Порог (мин)</label>
-      <input type="number" id="lineTimerThreshold" min="1" max="60" value="1">
+
+    <div class="section">
+      <div class="section-header">
+        <label class="toggle">
+          <input type="checkbox" id="dialTimerEnabled" checked>
+          <span class="slider"></span>
+        </label>
+        <span class="section-title">Контроль дозвона</span>
+      </div>
+      <div class="section-body" id="dialTimerBody">
+        <label class="label">Порог (секунды):</label>
+        <div class="input-row">
+          <input type="range" id="dialTimerThreshold" min="10" max="120" value="30" class="slider-input">
+          <span class="value-display" id="dialTimerValue">30</span>
+        </div>
+        <div class="hint">Сброс звонка + звук при превышении</div>
+      </div>
     </div>
-    <div class="row">
-      <label>Действие</label>
-      <select id="lineAction">
-        <option value="rejoin">Перевойти в очередь</option>
-        <option value="relogin">Перелогиниться</option>
-      </select>
+
+    <div class="section">
+      <div class="section-header">
+        <span class="section-title">Звук</span>
+      </div>
+      <div class="section-body">
+        <label class="label">Тип звука:</label>
+        <select id="soundType" class="select">
+          <option value="beep">Бип</option>
+          <option value="double_beep">Двойной бип</option>
+          <option value="alarm" selected>Тревога</option>
+          <option value="siren">Сирена</option>
+        </select>
+
+        <label class="label">Громкость:</label>
+        <div class="input-row">
+          <input type="range" id="volume" min="0" max="100" value="80" class="slider-input">
+          <span class="value-display" id="volumeValue">80%</span>
+        </div>
+
+        <button id="testSound" class="btn-test">Тест звука</button>
+      </div>
     </div>
+
+    <div class="status" id="status"></div>
   </div>
-
-  <div class="section">
-    <div class="section-title">Таймер дозвона</div>
-    <div class="row">
-      <label>Включить</label>
-      <div class="switch"><input type="checkbox" id="dialTimerEnabled"><label class="slider" for="dialTimerEnabled"></label></div>
-    </div>
-    <div class="row">
-      <label>Порог (сек)</label>
-      <input type="number" id="dialTimerThreshold" min="5" max="120" value="30">
-    </div>
-  </div>
-
-  <div class="section">
-    <div class="section-title">Звук</div>
-    <div class="row">
-      <label>Тип</label>
-      <select id="soundType">
-        <option value="alarm">Сирена</option>
-        <option value="beep">Бип</option>
-        <option value="none">Без звука</option>
-      </select>
-    </div>
-    <div class="row">
-      <label>Громкость</label>
-      <input type="number" id="volume" min="0" max="100" value="80" style="width:50px">
-    </div>
-  </div>
-
-  <div class="section">
-    <div class="section-title">Перерыв</div>
-    <div class="row">
-      <label>Включить</label>
-      <div class="switch"><input type="checkbox" id="breakEnabled"><label class="slider" for="breakEnabled"></label></div>
-    </div>
-    <div class="row">
-      <label>Работа (мин)</label>
-      <input type="number" id="breakWorkMinutes" min="10" max="180" value="60">
-    </div>
-    <div class="row">
-      <label>Отдых (мин)</label>
-      <input type="number" id="breakRestMinutes" min="1" max="30" value="10">
-    </div>
-  </div>
-
-  <div class="section">
-    <div class="section-title">Telegram</div>
-    <div class="row">
-      <label>Bot Token</label>
-      <input type="text" class="token" id="telegramBotToken" placeholder="123456:ABC-DEF...">
-    </div>
-    <div class="row">
-      <label>Chat ID</label>
-      <input type="text" class="chatid" id="telegramChatId" placeholder="123456789">
-    </div>
-  </div>
-
   <script src="popup.js"></script>
 </body>
 </html>
