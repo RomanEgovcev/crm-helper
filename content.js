@@ -390,12 +390,14 @@
   }
 
   let breakIndicator = null;
-  let breakTimerInterval = null;
-  let breakTimeLeft = 0;
+  let breakDisplayInterval = null;
+  let breakPhaseEndAt = 0;
   let isOnBreak = false;
   let alarmAudioCtx = null;
   let alarmNodes = [];
   let alarmLoopTimer = null;
+
+  const BREAK_ALARM_NAME = 'crm-helper-break-phase';
 
   function createBreakIndicator() {
     if (breakIndicator && breakIndicator.parentNode) return breakIndicator;
@@ -406,16 +408,20 @@
     return breakIndicator;
   }
 
+  function getBreakTimeLeft() {
+    if (breakPhaseEndAt <= 0) return 0;
+    return Math.max(0, Math.ceil((breakPhaseEndAt - Date.now()) / 1000));
+  }
+
   function updateBreakDisplay() {
     const indicator = createBreakIndicator();
+    const left = getBreakTimeLeft();
+    const min = Math.floor(left / 60);
+    const sec = left % 60;
     if (isOnBreak) {
-      const min = Math.floor(breakTimeLeft / 60);
-      const sec = breakTimeLeft % 60;
       indicator.textContent = `\u2615 Перерыв: ${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
       indicator.style.borderColor = '#ffb74d';
     } else {
-      const min = Math.floor(breakTimeLeft / 60);
-      const sec = breakTimeLeft % 60;
       indicator.textContent = `\ud83d\udcbc Работа: ${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
       indicator.style.borderColor = '#4caf50';
     }
@@ -423,7 +429,7 @@
 
   function saveBreakState() {
     localStorage.setItem('crm-helper-break', JSON.stringify({
-      breakTimeLeft, isOnBreak
+      breakPhaseEndAt, isOnBreak
     }));
   }
 
@@ -431,50 +437,75 @@
     try {
       const saved = JSON.parse(localStorage.getItem('crm-helper-break'));
       if (saved) {
-        breakTimeLeft = saved.breakTimeLeft || 0;
         isOnBreak = saved.isOnBreak || false;
-        if (breakTimeLeft > 0) {
-          console.log(`[CRM Helper] Таймер перерыва восстановлен: ${isOnBreak ? 'перерыв' : 'работа'}, осталось ${breakTimeLeft}с`);
+        breakPhaseEndAt = saved.breakPhaseEndAt || 0;
+        if (breakPhaseEndAt > Date.now()) {
+          const left = Math.ceil((breakPhaseEndAt - Date.now()) / 1000);
+          console.log(`[CRM Helper] Таймер перерыва восстановлен: ${isOnBreak ? 'перерыв' : 'работа'}, осталось ${left}с`);
+        } else if (breakPhaseEndAt > 0) {
+          handleBreakPhaseEnd();
         }
       }
     } catch (e) {}
   }
 
-  function breakTimerTick() {
-    if (breakTimeLeft > 0) {
-      breakTimeLeft--;
+  function handleBreakPhaseEnd() {
+    if (isOnBreak) {
+      isOnBreak = false;
+      breakPhaseEndAt = Date.now() + (settings.breakWorkMinutes || 60) * 60 * 1000;
+      sendTelegramRaw('\ud83d\udcbc ПЕРЕРЫВ ОКОНЧЕН — работаем!');
+      startAlarmSound();
+      showBreakAlarmOverlay('\ud83d\udcbc ПЕРЕРЫВ ОКОНЧЕН');
     } else {
-      if (isOnBreak) {
-        isOnBreak = false;
-        breakTimeLeft = (settings.breakWorkMinutes || 60) * 60;
-        sendTelegramRaw('\ud83d\udcbc ПЕРЕРЫВ ОКОНЧЕН — работаем!');
-        startAlarmSound();
-        showBreakAlarmOverlay('\ud83d\udcbc ПЕРЕРЫВ ОКОНЧЕН');
-      } else {
-        isOnBreak = true;
-        breakTimeLeft = (settings.breakRestMinutes || 10) * 60;
-        sendTelegramRaw(`\u2615 ПЕРЕРЫВ НАЧАЛСЯ — отдыхай ${settings.breakRestMinutes || 10} мин`);
-        playBreakBeep();
-      }
+      isOnBreak = true;
+      breakPhaseEndAt = Date.now() + (settings.breakRestMinutes || 10) * 60 * 1000;
+      sendTelegramRaw(`\u2615 ПЕРЕРЫВ НАЧАЛСЯ — отдыхай ${settings.breakRestMinutes || 10} мин`);
+      playBreakBeep();
     }
     updateBreakDisplay();
     saveBreakState();
+    scheduleBreakAlarm();
   }
+
+  function scheduleBreakAlarm() {
+    chrome.alarms.clear(BREAK_ALARM_NAME, () => {
+      if (breakPhaseEndAt > 0) {
+        const delayMs = breakPhaseEndAt - Date.now();
+        if (delayMs > 0) {
+          chrome.alarms.create(BREAK_ALARM_NAME, { when: breakPhaseEndAt });
+          console.log(`[CRM Helper] Alarm set for ${Math.round(delayMs / 1000)}s`);
+        } else {
+          handleBreakPhaseEnd();
+        }
+      }
+    });
+  }
+
+  chrome.alarms.onAlarm.addListener((alarm) => {
+    if (alarm.name === BREAK_ALARM_NAME) {
+      console.log('[CRM Helper] Break alarm fired');
+      handleBreakPhaseEnd();
+    }
+  });
 
   function startBreakTimer() {
     stopBreakTimer();
     restoreBreakState();
-    if (breakTimeLeft <= 0) {
-      breakTimeLeft = (settings.breakWorkMinutes || 60) * 60;
+    if (breakPhaseEndAt <= Date.now()) {
+      breakPhaseEndAt = Date.now() + (settings.breakWorkMinutes || 60) * 60 * 1000;
       isOnBreak = false;
     }
     updateBreakDisplay();
-    breakTimerInterval = setInterval(breakTimerTick, 1000);
+    saveBreakState();
+    scheduleBreakAlarm();
+    breakDisplayInterval = setInterval(updateBreakDisplay, 1000);
   }
 
   function stopBreakTimer() {
-    if (breakTimerInterval) clearInterval(breakTimerInterval);
-    breakTimerInterval = null;
+    if (breakDisplayInterval) clearInterval(breakDisplayInterval);
+    breakDisplayInterval = null;
+    breakPhaseEndAt = 0;
+    chrome.alarms.clear(BREAK_ALARM_NAME);
   }
 
   function playBreakBeep() {
