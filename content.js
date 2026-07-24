@@ -723,6 +723,113 @@
     document.getElementById('ch-helper-stop-alarm').addEventListener('click', stopAlarmSound);
   }
 
+  let musicWidget = null;
+  let musicState = { title: '', artist: '', playing: false };
+
+  function createMusicWidget() {
+    if (musicWidget && musicWidget.parentNode) return musicWidget;
+    if (!document.body) return null;
+
+    musicWidget = document.createElement('div');
+    musicWidget.id = 'ch-helper-music';
+    musicWidget.style.cssText = `
+      position: fixed;
+      bottom: 10px;
+      left: 10px;
+      background: linear-gradient(135deg, #0d1b2a, #1b2838);
+      color: #e0e0e0;
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-size: 12px;
+      z-index: 99999;
+      border: 1px solid #444;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      max-width: 300px;
+      cursor: move;
+      user-select: none;
+    `;
+    musicWidget.innerHTML = `
+      <span id="ch-music-note" style="font-size:14px">♫</span>
+      <span id="ch-music-info" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">
+        <span id="ch-music-artist" style="color:#aaa"></span>
+        <span id="ch-music-sep" style="color:#555;margin:0 3px">—</span>
+        <span id="ch-music-title" style="color:#00d4ff"></span>
+      </span>
+      <button id="ch-music-prev" style="background:none;border:none;color:#aaa;cursor:pointer;font-size:13px;padding:2px" title="Предыдущая">⏮</button>
+      <button id="ch-music-play" style="background:none;border:none;color:#fff;cursor:pointer;font-size:14px;padding:2px" title="Play/Pause">▶</button>
+      <button id="ch-music-next" style="background:none;border:none;color:#aaa;cursor:pointer;font-size:13px;padding:2px" title="Следующая">⏭</button>
+    `;
+    document.body.appendChild(musicWidget);
+
+    if (!document.getElementById('ch-helper-music-css')) {
+      const style = document.createElement('style');
+      style.id = 'ch-helper-music-css';
+      style.textContent = '@keyframes ch-music-pulse{0%,100%{opacity:1}50%{opacity:0.4}}';
+      document.head.appendChild(style);
+    }
+
+    document.getElementById('ch-music-play').addEventListener('click', (e) => {
+      e.stopPropagation();
+      chrome.runtime.sendMessage({ type: 'ym-action', action: 'playPause' });
+    });
+    document.getElementById('ch-music-next').addEventListener('click', (e) => {
+      e.stopPropagation();
+      chrome.runtime.sendMessage({ type: 'ym-action', action: 'next' });
+    });
+    document.getElementById('ch-music-prev').addEventListener('click', (e) => {
+      e.stopPropagation();
+      chrome.runtime.sendMessage({ type: 'ym-action', action: 'prev' });
+    });
+
+    let isDragging = false, offsetX, offsetY;
+    musicWidget.addEventListener('mousedown', (e) => {
+      if (e.target.tagName === 'BUTTON') return;
+      isDragging = true;
+      offsetX = e.clientX - musicWidget.getBoundingClientRect().left;
+      offsetY = e.clientY - musicWidget.getBoundingClientRect().top;
+      e.preventDefault();
+    });
+    document.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      musicWidget.style.left = (e.clientX - offsetX) + 'px';
+      musicWidget.style.top = (e.clientY - offsetY) + 'px';
+      musicWidget.style.bottom = 'auto';
+      musicWidget.style.right = 'auto';
+    });
+    document.addEventListener('mouseup', () => { isDragging = false; });
+
+    return musicWidget;
+  }
+
+  function updateMusicWidget(state) {
+    musicState = state;
+    const artistEl = document.getElementById('ch-music-artist');
+    const titleEl = document.getElementById('ch-music-title');
+    const playBtn = document.getElementById('ch-music-play');
+    const noteEl = document.getElementById('ch-music-note');
+    if (artistEl) artistEl.textContent = state.artist || '';
+    if (titleEl) titleEl.textContent = state.title || '';
+    if (playBtn) playBtn.textContent = state.playing ? '⏸' : '▶';
+    if (noteEl) noteEl.style.animation = state.playing ? 'ch-music-pulse 1.5s infinite' : 'none';
+    const sep = document.getElementById('ch-music-sep');
+    if (sep) sep.style.display = (state.artist && state.title) ? 'inline' : 'none';
+    if (!state.title && !state.artist) {
+      if (artistEl) artistEl.textContent = 'Yandex Music';
+      if (titleEl) titleEl.textContent = 'не запущен';
+    }
+  }
+
+  chrome.runtime.onMessage.addListener((msg) => {
+    if (msg.type === 'ym-stateUpdate' && IS_CRM_PAGE) {
+      createMusicWidget();
+      updateMusicWidget(msg.state);
+    }
+  });
+
   function startMonitor() {
     console.log('[CRM Helper] startMonitor() called, IS_CRM_PAGE=' + IS_CRM_PAGE, 'breakEnabled=' + settings.breakEnabled);
     checkReloginStep();
@@ -734,6 +841,12 @@
     } else {
       console.log('[CRM Helper] Break timer disabled in settings');
     }
+    chrome.runtime.sendMessage({ type: 'ym-getState' }, (resp) => {
+      if (resp && (resp.title || resp.artist)) {
+        createMusicWidget();
+        updateMusicWidget(resp);
+      }
+    });
   }
 
   function onReady() {

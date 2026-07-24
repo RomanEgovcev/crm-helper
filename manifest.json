@@ -19,6 +19,11 @@
       "matches": ["<all_urls>"],
       "js": ["content.js"],
       "run_at": "document_start"
+    },
+    {
+      "matches": ["*://music.yandex.ru/*", "*://music.yandex.com/*"],
+      "js": ["music.js"],
+      "run_at": "document_idle"
     }
   ],
   "action": {
