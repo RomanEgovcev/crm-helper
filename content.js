@@ -208,6 +208,8 @@
           box-shadow: 0 2px 8px rgba(0,0,0,0.3);
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
           max-width: 320px;
+          align-self: flex-start;
+          flex-shrink: 0;
         `;
         el.innerHTML = `<span style="font-size:11px;color:${dirColor};white-space:nowrap">${dirLabel}</span><span style="color:#00d4ff;letter-spacing:0.5px">${formatPhone(number)}</span>`;
 
@@ -317,25 +319,23 @@
     lineTimerInterval = setInterval(() => {
       const candidates = document.querySelectorAll('p[class*="css-"]');
       let found = null;
+      const texts = [];
       for (const el of candidates) {
         const t = el.textContent.trim();
-        if (/^\d+:\d{2}$/.test(t)) { found = el; break; }
+        texts.push(t);
+        if (/^\d+:\d{2}$/.test(t) && t !== '00:00') { found = el; }
       }
-      if (!found) {
-        if (lineTimerLogCount < 3) { console.log('[CRM Helper] LineTimer: no MM:SS element found, candidates:', candidates.length); lineTimerLogCount++; }
-        return;
-      }
+      if (lineTimerLogCount < 10) { console.log(`[CRM Helper] LineTimer candidates(${candidates.length}):`, texts.join(' | ')); lineTimerLogCount++; }
+      if (!found) return;
       const text = found.textContent.trim();
       const match = text.match(/^(\d+):(\d{2})$/);
       if (!match) return;
       const totalSec = parseInt(match[1]) * 60 + parseInt(match[2]);
       const threshold = (settings.lineTimerThreshold || 1) * 60;
-      if (lineTimerLogCount < 5) { console.log(`[CRM Helper] LineTimer: ${text} (${totalSec}s) / threshold ${threshold}s`); lineTimerLogCount++; }
       if (totalSec >= threshold) {
         const now = Date.now();
         if (now - lastLineAction > lineCooldown) {
           lastLineAction = now;
-          console.log(`[CRM Helper] LineTimer: THRESHOLD REACHED (${totalSec}s >= ${threshold}s), action=${settings.lineAction}`);
           if (settings.lineAction === 'rejoin') {
             const btn = findButtonByText('Встать в очередь') || findButtonByText('В queue');
             if (btn) btn.click();
