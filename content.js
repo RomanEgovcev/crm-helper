@@ -55,7 +55,6 @@
       console.log(`[CRM Helper] ${direction === 'incoming' ? 'Входящий' : 'Исходящий'} звонок: ${number}`);
       callActive = true;
       ensureCallerVisible(number, direction);
-      trySendToTelegram(number, direction);
       startDialTimer();
     });
 
