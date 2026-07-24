@@ -550,17 +550,20 @@
   }
 
   function handleBreakPhaseEnd() {
+    console.log(`[CRM Helper] handleBreakPhaseEnd called: isOnBreak=${isOnBreak}, breakPhaseEndAt=${breakPhaseEndAt}`);
     if (breakPhaseEndAt <= 0) return;
     if (isOnBreak) {
       isOnBreak = false;
       breakPhaseEndAt = Date.now() + (settings.breakWorkMinutes || 60) * 60 * 1000;
-      sendTelegramRaw('\ud83d\udcbc ПЕРЕРЫВ ОКОНЧЕН — работаем!');
+      console.log('[CRM Helper] Break ended, sending Telegram...');
+      sendTelegramRaw('\ud83d\udcbc ПЕРЕРЫВ ОКОНЧЕН — работаем!').then(ok => console.log('[CRM Helper] Telegram result:', ok));
       startAlarmSound();
       showBreakAlarmOverlay('\ud83d\udcbc ПЕРЕРЫВ ОКОНЧЕН');
     } else {
       isOnBreak = true;
       breakPhaseEndAt = Date.now() + (settings.breakRestMinutes || 10) * 60 * 1000;
-      sendTelegramRaw(`\u2615 ПЕРЕРЫВ НАЧАЛСЯ — отдыхай ${settings.breakRestMinutes || 10} мин`);
+      console.log('[CRM Helper] Break started, sending Telegram...');
+      sendTelegramRaw(`\u2615 ПЕРЕРЫВ НАЧАЛСЯ — отдыхай ${settings.breakRestMinutes || 10} мин`).then(ok => console.log('[CRM Helper] Telegram result:', ok));
       playBreakBeep();
     }
     updateBreakDisplay();
