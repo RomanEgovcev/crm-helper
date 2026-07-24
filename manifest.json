@@ -3,7 +3,7 @@
   "name": "CRM Helper - Автоконтроль таймеров",
   "version": "2.0",
   "description": "Автоматический контроль времени на линии, дозвона в CRM и отображение номера звонящего",
-  "permissions": ["storage", "activeTab", "alarms"],
+  "permissions": ["storage", "activeTab", "alarms", "tabs"],
   "host_permissions": ["https://api.telegram.org/*", "https://num.voxlink.ru/*"],
   "background": {
     "service_worker": "background.js"

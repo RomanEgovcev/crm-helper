@@ -735,7 +735,8 @@
 
   function createMusicWidget() {
     if (musicWidget && musicWidget.parentNode) return musicWidget;
-    if (!document.body) return null;
+    if (!document.body) { console.warn('[CRM Helper] createMusicWidget: document.body not ready'); return null; }
+    console.log('[CRM Helper] Creating music widget');
 
     musicWidget = document.createElement('div');
     musicWidget.id = 'ch-helper-music';
