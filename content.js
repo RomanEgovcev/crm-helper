@@ -310,21 +310,32 @@
   let dialTimerInterval = null;
   let dialTimerSeconds = 0;
 
+  let lineTimerLogCount = 0;
   function startLineTimer() {
     stopLineTimer();
     lastLineAction = 0;
     lineTimerInterval = setInterval(() => {
-      const el = document.querySelector('p.chakra-text[class*="css-"]');
-      if (!el) return;
-      const text = el.textContent.trim();
+      const candidates = document.querySelectorAll('p[class*="css-"]');
+      let found = null;
+      for (const el of candidates) {
+        const t = el.textContent.trim();
+        if (/^\d+:\d{2}$/.test(t)) { found = el; break; }
+      }
+      if (!found) {
+        if (lineTimerLogCount < 3) { console.log('[CRM Helper] LineTimer: no MM:SS element found, candidates:', candidates.length); lineTimerLogCount++; }
+        return;
+      }
+      const text = found.textContent.trim();
       const match = text.match(/^(\d+):(\d{2})$/);
       if (!match) return;
       const totalSec = parseInt(match[1]) * 60 + parseInt(match[2]);
       const threshold = (settings.lineTimerThreshold || 1) * 60;
+      if (lineTimerLogCount < 5) { console.log(`[CRM Helper] LineTimer: ${text} (${totalSec}s) / threshold ${threshold}s`); lineTimerLogCount++; }
       if (totalSec >= threshold) {
         const now = Date.now();
         if (now - lastLineAction > lineCooldown) {
           lastLineAction = now;
+          console.log(`[CRM Helper] LineTimer: THRESHOLD REACHED (${totalSec}s >= ${threshold}s), action=${settings.lineAction}`);
           if (settings.lineAction === 'rejoin') {
             const btn = findButtonByText('Встать в очередь') || findButtonByText('В queue');
             if (btn) btn.click();
