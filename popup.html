@@ -19,12 +19,17 @@
         <span class="section-title">Контроль времени на линии</span>
       </div>
       <div class="section-body" id="lineTimerBody">
-        <label class="label">Порог (секунды):</label>
+        <label class="label">Порог (минуты):</label>
         <div class="input-row">
-          <input type="range" id="lineTimerThreshold" min="30" max="300" value="90" class="slider-input">
-          <span class="value-display" id="lineTimerValue">90</span>
+          <input type="range" id="lineTimerThreshold" min="1" max="30" value="1" class="slider-input">
+          <span class="value-display" id="lineTimerValue">1</span>
         </div>
-        <div class="hint">Выход и повторный вход в очередь при превышении</div>
+        <label class="label">Действие:</label>
+        <select id="lineAction" class="select">
+          <option value="rejoin">Перевойти в очередь</option>
+          <option value="relogin">Перелогиниться</option>
+        </select>
+        <div class="hint">Действие при превышении порога</div>
       </div>
     </div>
 
@@ -66,6 +71,42 @@
         </div>
 
         <button id="testSound" class="btn-test">Тест звука</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <label class="toggle">
+          <input type="checkbox" id="breakEnabled" checked>
+          <span class="slider"></span>
+        </label>
+        <span class="section-title">Таймер перерыва</span>
+      </div>
+      <div class="section-body" id="breakBody">
+        <label class="label">Работа (минуты):</label>
+        <div class="input-row">
+          <input type="range" id="breakWorkMinutes" min="5" max="120" value="60" class="slider-input">
+          <span class="value-display" id="breakWorkValue">60</span>
+        </div>
+        <label class="label">Перерыв (минуты):</label>
+        <div class="input-row">
+          <input type="range" id="breakRestMinutes" min="1" max="30" value="10" class="slider-input">
+          <span class="value-display" id="breakRestValue">10</span>
+        </div>
+        <div class="hint">Автоматический цикл работа/перерыв</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <span class="section-title">Telegram</span>
+      </div>
+      <div class="section-body">
+        <label class="label">Bot Token:</label>
+        <input type="text" id="telegramBotToken" class="text-input" placeholder="123456:ABC-DEF...">
+        <label class="label">Chat ID:</label>
+        <input type="text" id="telegramChatId" class="text-input" placeholder="708684405">
+        <div class="hint">Звонки отправляются автоматически</div>
       </div>
     </div>
 

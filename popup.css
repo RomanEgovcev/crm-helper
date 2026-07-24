@@ -159,6 +159,23 @@ h1 {
   border-color: #00d4ff;
 }
 
+.text-input {
+  width: 100%;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid #0f3460;
+  background: #1a1a2e;
+  color: #e0e0e0;
+  font-size: 12px;
+  font-family: monospace;
+  outline: none;
+  margin-top: 2px;
+}
+
+.text-input:focus {
+  border-color: #00d4ff;
+}
+
 .btn-test {
   display: block;
   width: 100%;

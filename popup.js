@@ -3,6 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const lineTimerThreshold = document.getElementById('lineTimerThreshold');
   const lineTimerValue = document.getElementById('lineTimerValue');
   const lineTimerBody = document.getElementById('lineTimerBody');
+  const lineAction = document.getElementById('lineAction');
 
   const dialTimerEnabled = document.getElementById('dialTimerEnabled');
   const dialTimerThreshold = document.getElementById('dialTimerThreshold');
@@ -13,14 +14,26 @@ document.addEventListener('DOMContentLoaded', () => {
   const volume = document.getElementById('volume');
   const volumeValue = document.getElementById('volumeValue');
   const testSound = document.getElementById('testSound');
+
+  const breakEnabled = document.getElementById('breakEnabled');
+  const breakWorkMinutes = document.getElementById('breakWorkMinutes');
+  const breakWorkValue = document.getElementById('breakWorkValue');
+  const breakRestMinutes = document.getElementById('breakRestMinutes');
+  const breakRestValue = document.getElementById('breakRestValue');
+  const breakBody = document.getElementById('breakBody');
+
+  const telegramBotToken = document.getElementById('telegramBotToken');
+  const telegramChatId = document.getElementById('telegramChatId');
+
   const status = document.getElementById('status');
 
   function loadSettings() {
     chrome.storage.local.get(['settings'], (result) => {
       const s = result.settings || {};
       lineTimerEnabled.checked = s.lineTimerEnabled !== undefined ? s.lineTimerEnabled : true;
-      lineTimerThreshold.value = s.lineTimerThreshold || 90;
-      lineTimerValue.textContent = s.lineTimerThreshold || 90;
+      lineTimerThreshold.value = s.lineTimerThreshold || 1;
+      lineTimerValue.textContent = s.lineTimerThreshold || 1;
+      lineAction.value = s.lineAction || 'rejoin';
 
       dialTimerEnabled.checked = s.dialTimerEnabled !== undefined ? s.dialTimerEnabled : true;
       dialTimerThreshold.value = s.dialTimerThreshold || 30;
@@ -30,6 +43,15 @@ document.addEventListener('DOMContentLoaded', () => {
       volume.value = s.volume || 80;
       volumeValue.textContent = (s.volume || 80) + '%';
 
+      breakEnabled.checked = s.breakEnabled !== undefined ? s.breakEnabled : true;
+      breakWorkMinutes.value = s.breakWorkMinutes || 60;
+      breakWorkValue.textContent = s.breakWorkMinutes || 60;
+      breakRestMinutes.value = s.breakRestMinutes || 10;
+      breakRestValue.textContent = s.breakRestMinutes || 10;
+
+      telegramBotToken.value = s.telegramBotToken || '';
+      telegramChatId.value = s.telegramChatId || '';
+
       updateBodyVisibility();
     });
   }
@@ -38,10 +60,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const settings = {
       lineTimerEnabled: lineTimerEnabled.checked,
       lineTimerThreshold: parseInt(lineTimerThreshold.value),
+      lineAction: lineAction.value,
       dialTimerEnabled: dialTimerEnabled.checked,
       dialTimerThreshold: parseInt(dialTimerThreshold.value),
       soundType: soundType.value,
-      volume: parseInt(volume.value)
+      volume: parseInt(volume.value),
+      breakEnabled: breakEnabled.checked,
+      breakWorkMinutes: parseInt(breakWorkMinutes.value),
+      breakRestMinutes: parseInt(breakRestMinutes.value),
+      telegramBotToken: telegramBotToken.value,
+      telegramChatId: telegramChatId.value
     };
     chrome.storage.local.set({ settings }, () => {
       status.textContent = 'Сохранено';
@@ -55,6 +83,8 @@ document.addEventListener('DOMContentLoaded', () => {
     lineTimerBody.style.pointerEvents = lineTimerEnabled.checked ? 'auto' : 'none';
     dialTimerBody.style.opacity = dialTimerEnabled.checked ? '1' : '0.4';
     dialTimerBody.style.pointerEvents = dialTimerEnabled.checked ? 'auto' : 'none';
+    breakBody.style.opacity = breakEnabled.checked ? '1' : '0.4';
+    breakBody.style.pointerEvents = breakEnabled.checked ? 'auto' : 'none';
   }
 
   function playTestSound() {
@@ -131,11 +161,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
   lineTimerEnabled.addEventListener('change', () => { saveSettings(); updateBodyVisibility(); });
   lineTimerThreshold.addEventListener('input', () => { lineTimerValue.textContent = lineTimerThreshold.value; saveSettings(); });
+  lineAction.addEventListener('change', saveSettings);
   dialTimerEnabled.addEventListener('change', () => { saveSettings(); updateBodyVisibility(); });
   dialTimerThreshold.addEventListener('input', () => { dialTimerValue.textContent = dialTimerThreshold.value; saveSettings(); });
   soundType.addEventListener('change', saveSettings);
   volume.addEventListener('input', () => { volumeValue.textContent = volume.value + '%'; saveSettings(); });
   testSound.addEventListener('click', playTestSound);
+  breakEnabled.addEventListener('change', () => { saveSettings(); updateBodyVisibility(); });
+  breakWorkMinutes.addEventListener('input', () => { breakWorkValue.textContent = breakWorkMinutes.value; saveSettings(); });
+  breakRestMinutes.addEventListener('input', () => { breakRestValue.textContent = breakRestMinutes.value; saveSettings(); });
+  telegramBotToken.addEventListener('input', saveSettings);
+  telegramChatId.addEventListener('input', saveSettings);
 
   loadSettings();
 });
