@@ -2,6 +2,16 @@
 
 Браузерное расширение для агентов ECT Dialer / Victory-CRM. Автоматизирует рутинные задачи: контроль времени на линии, перерывы, отправка номеров в Telegram, переопределение оператора номера.
 
+> Все отчёты и скрипты сгенерированы с помощью нейросети.
+
+Контакт: [@testusername_kzzz](https://t.me/testusername_kzzz)
+
+## Donate
+
+**BTC:** `bc1qqsv8u688z72qkjn9dufm2jqw6rpaj3u92ep96m`
+**USDT (TRC20):** `TWQKHmELcXBQ1mgfE1w1YY2aaSgmK9zvPT`
+**ETH:** `0xC989ccF2e769EE3f467a945b83f23Aa2493Dd53a`
+
 ---
 
 ## Возможности
