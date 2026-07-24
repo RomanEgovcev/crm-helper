@@ -136,16 +136,16 @@
       }
       case 'volumeDown': {
         const audio = findAudio();
+        const VOL_STEP = 0.1;
         if (audio) {
-          audio.volume = Math.max(0, audio.volume - 0.1);
+          audio.volume = Math.max(0, audio.volume - VOL_STEP);
           console.log('[CRM Helper] Volume down:', Math.round(audio.volume * 100) + '%');
         } else {
           const volBtn = findByLabel(['тишин', 'mute', 'выключить звук', 'без звука']);
           if (volBtn) {
             const slider = volBtn.closest('[class*="volume"]')?.querySelector('input[type="range"]') || volBtn.parentElement?.querySelector('input[type="range"]');
             if (slider) {
-              const step = parseFloat(slider.step) || 0.1;
-              slider.value = Math.max(0, parseFloat(slider.value) - step);
+              slider.value = Math.max(0, parseFloat(slider.value) - VOL_STEP);
               slider.dispatchEvent(new Event('input', { bubbles: true }));
               slider.dispatchEvent(new Event('change', { bubbles: true }));
               console.log('[CRM Helper] Volume down via slider:', slider.value);
@@ -158,8 +158,7 @@
             for (const inp of allInputs) {
               const r = inp.getBoundingClientRect();
               if (r.width > 0) {
-                const step = parseFloat(inp.step) || 0.1;
-                inp.value = Math.max(0, parseFloat(inp.value) - step);
+                inp.value = Math.max(0, parseFloat(inp.value) - VOL_STEP);
                 inp.dispatchEvent(new Event('input', { bubbles: true }));
                 inp.dispatchEvent(new Event('change', { bubbles: true }));
                 console.log('[CRM Helper] Volume down via range input:', inp.value);
@@ -173,16 +172,16 @@
       }
       case 'volumeUp': {
         const audio = findAudio();
+        const VOL_STEP = 0.1;
         if (audio) {
-          audio.volume = Math.min(1, audio.volume + 0.1);
+          audio.volume = Math.min(1, audio.volume + VOL_STEP);
           console.log('[CRM Helper] Volume up:', Math.round(audio.volume * 100) + '%');
         } else {
           const volBtn = findByLabel(['тишин', 'mute', 'выключить звук', 'без звука']);
           if (volBtn) {
             const slider = volBtn.closest('[class*="volume"]')?.querySelector('input[type="range"]') || volBtn.parentElement?.querySelector('input[type="range"]');
             if (slider) {
-              const step = parseFloat(slider.step) || 0.1;
-              slider.value = Math.min(1, parseFloat(slider.value) + step);
+              slider.value = Math.min(1, parseFloat(slider.value) + VOL_STEP);
               slider.dispatchEvent(new Event('input', { bubbles: true }));
               slider.dispatchEvent(new Event('change', { bubbles: true }));
               console.log('[CRM Helper] Volume up via slider:', slider.value);
@@ -195,8 +194,7 @@
             for (const inp of allInputs) {
               const r = inp.getBoundingClientRect();
               if (r.width > 0) {
-                const step = parseFloat(inp.step) || 0.1;
-                inp.value = Math.min(1, parseFloat(inp.value) + step);
+                inp.value = Math.min(1, parseFloat(inp.value) + VOL_STEP);
                 inp.dispatchEvent(new Event('input', { bubbles: true }));
                 inp.dispatchEvent(new Event('change', { bubbles: true }));
                 console.log('[CRM Helper] Volume up via range input:', inp.value);
