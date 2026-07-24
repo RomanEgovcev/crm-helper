@@ -27,7 +27,6 @@
     if (result.settings) {
       settings = { ...DEFAULT_SETTINGS, ...result.settings };
     }
-    if (IS_CRM_PAGE) startMonitor();
   });
 
   let prevBreakEnabled = null;
@@ -642,6 +641,12 @@
     checkReloginStep();
     startLineTimer();
     if (settings.breakEnabled) startBreakTimer();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => { if (IS_CRM_PAGE) startMonitor(); });
+  } else {
+    if (IS_CRM_PAGE) startMonitor();
   }
 
   console.log('[CRM Helper] Расширение запущено.');
