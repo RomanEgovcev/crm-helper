@@ -1,6 +1,28 @@
 (() => {
   if (location.hostname !== 'music.yandex.ru' && location.hostname !== 'music.yandex.com') return;
 
+  function findAudio() {
+    let audio = document.querySelector('audio');
+    if (audio) return audio;
+    const audios = document.querySelectorAll('audio');
+    if (audios.length > 0) return audios[0];
+    const shadows = document.querySelectorAll('*');
+    for (const el of shadows) {
+      if (el.shadowRoot) {
+        audio = el.shadowRoot.querySelector('audio');
+        if (audio) return audio;
+      }
+    }
+    const iframes = document.querySelectorAll('iframe');
+    for (const iframe of iframes) {
+      try {
+        audio = iframe.contentDocument?.querySelector('audio');
+        if (audio) return audio;
+      } catch(e) {}
+    }
+    return null;
+  }
+
   let lastState = { title: '', artist: '', playing: false };
 
   function simulateClick(btn) {
@@ -81,7 +103,7 @@
         const btn = findPlayBtn();
         if (btn) {
           const label = (btn.getAttribute('aria-label') || '').toLowerCase();
-          const audio = document.querySelector('audio');
+          const audio = findAudio();
           if (audio) {
             if (audio.paused) { audio.play().catch(()=>{}); console.log('[CRM Helper] Audio.play() called'); }
             else { audio.pause(); console.log('[CRM Helper] Audio.pause() called'); }
@@ -91,7 +113,7 @@
           }
         } else {
           console.log('[CRM Helper] Music: play/pause NOT found');
-          const audio = document.querySelector('audio');
+          const audio = findAudio();
           if (audio) {
             if (audio.paused) audio.play().catch(()=>{});
             else audio.pause();
@@ -113,19 +135,25 @@
         break;
       }
       case 'volumeDown': {
-        const audio = document.querySelector('audio');
+        const audio = findAudio();
         if (audio) {
           audio.volume = Math.max(0, audio.volume - 0.1);
           console.log('[CRM Helper] Volume down:', Math.round(audio.volume * 100) + '%');
-        } else { console.log('[CRM Helper] No audio element found'); }
+        } else {
+          console.log('[CRM Helper] No audio element found, trying keyboard');
+          document.dispatchEvent(new KeyboardEvent('keydown', { key: 'AudioVolumeDown', code: 'AudioVolumeDown', keyCode: 174, which: 174, bubbles: true }));
+        }
         break;
       }
       case 'volumeUp': {
-        const audio = document.querySelector('audio');
+        const audio = findAudio();
         if (audio) {
           audio.volume = Math.min(1, audio.volume + 0.1);
           console.log('[CRM Helper] Volume up:', Math.round(audio.volume * 100) + '%');
-        } else { console.log('[CRM Helper] No audio element found'); }
+        } else {
+          console.log('[CRM Helper] No audio element found, trying keyboard');
+          document.dispatchEvent(new KeyboardEvent('keydown', { key: 'AudioVolumeUp', code: 'AudioVolumeUp', keyCode: 175, which: 175, bubbles: true }));
+        }
         break;
       }
     }

@@ -461,6 +461,7 @@
           const passwordInput = document.querySelector('input[name="password"]');
           const submitBtn = document.querySelector('button[type="submit"]');
           if (usernameInput && passwordInput && submitBtn) {
+            console.log('[CRM Helper] Relogin step 2: filling login form');
             const nativeSet = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
             nativeSet.call(usernameInput, 'EgovcevRM');
             usernameInput.dispatchEvent(new Event('input', { bubbles: true }));
@@ -469,11 +470,17 @@
             submitBtn.click();
             reloginStep = 3;
             chrome.storage.local.set({ reloginStep: 3 });
-            checkStep3AfterLogin();
+          } else {
+            console.log('[CRM Helper] Relogin step 2: login form not found yet, retrying...');
+            setTimeout(() => checkReloginStep(), 2000);
           }
         }, 1000);
       } else if (step === 3) {
-        tryClickQueue();
+        console.log('[CRM Helper] Relogin step 3: trying to join queue');
+        if (!tryClickQueue()) {
+          console.log('[CRM Helper] Relogin step 3: queue button not found, starting polling...');
+          checkStep3AfterLogin();
+        }
       }
     });
   }
@@ -483,8 +490,17 @@
     const maxAttempts = 30;
     const interval = setInterval(() => {
       attempts++;
-      if (tryClickQueue() || attempts >= maxAttempts) {
+      const found = tryClickQueue();
+      if (attempts % 5 === 0 || found || attempts >= maxAttempts) {
+        console.log(`[CRM Helper] checkStep3AfterLogin: attempt ${attempts}/${maxAttempts}, found=${found}`);
+      }
+      if (found || attempts >= maxAttempts) {
         clearInterval(interval);
+        if (!found) {
+          console.log('[CRM Helper] checkStep3AfterLogin: gave up after maxAttempts');
+          reloginStep = 0;
+          chrome.storage.local.set({ reloginStep: 0 });
+        }
       }
     }, 1500);
   }
