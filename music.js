@@ -140,8 +140,34 @@
           audio.volume = Math.max(0, audio.volume - 0.1);
           console.log('[CRM Helper] Volume down:', Math.round(audio.volume * 100) + '%');
         } else {
-          console.log('[CRM Helper] No audio element found, trying keyboard');
-          document.dispatchEvent(new KeyboardEvent('keydown', { key: 'AudioVolumeDown', code: 'AudioVolumeDown', keyCode: 174, which: 174, bubbles: true }));
+          const volBtn = findByLabel(['тишин', 'mute', 'выключить звук', 'без звука']);
+          if (volBtn) {
+            const slider = volBtn.closest('[class*="volume"]')?.querySelector('input[type="range"]') || volBtn.parentElement?.querySelector('input[type="range"]');
+            if (slider) {
+              const step = parseFloat(slider.step) || 0.1;
+              slider.value = Math.max(0, parseFloat(slider.value) - step);
+              slider.dispatchEvent(new Event('input', { bubbles: true }));
+              slider.dispatchEvent(new Event('change', { bubbles: true }));
+              console.log('[CRM Helper] Volume down via slider:', slider.value);
+            } else {
+              simulateClick(volBtn);
+              console.log('[CRM Helper] Volume down: clicked mute/toggle button');
+            }
+          } else {
+            const allInputs = document.querySelectorAll('input[type="range"]');
+            for (const inp of allInputs) {
+              const r = inp.getBoundingClientRect();
+              if (r.width > 0) {
+                const step = parseFloat(inp.step) || 0.1;
+                inp.value = Math.max(0, parseFloat(inp.value) - step);
+                inp.dispatchEvent(new Event('input', { bubbles: true }));
+                inp.dispatchEvent(new Event('change', { bubbles: true }));
+                console.log('[CRM Helper] Volume down via range input:', inp.value);
+                break;
+              }
+            }
+            console.log('[CRM Helper] Volume: no audio, no mute btn, no slider found');
+          }
         }
         break;
       }
@@ -151,8 +177,34 @@
           audio.volume = Math.min(1, audio.volume + 0.1);
           console.log('[CRM Helper] Volume up:', Math.round(audio.volume * 100) + '%');
         } else {
-          console.log('[CRM Helper] No audio element found, trying keyboard');
-          document.dispatchEvent(new KeyboardEvent('keydown', { key: 'AudioVolumeUp', code: 'AudioVolumeUp', keyCode: 175, which: 175, bubbles: true }));
+          const volBtn = findByLabel(['тишин', 'mute', 'выключить звук', 'без звука']);
+          if (volBtn) {
+            const slider = volBtn.closest('[class*="volume"]')?.querySelector('input[type="range"]') || volBtn.parentElement?.querySelector('input[type="range"]');
+            if (slider) {
+              const step = parseFloat(slider.step) || 0.1;
+              slider.value = Math.min(1, parseFloat(slider.value) + step);
+              slider.dispatchEvent(new Event('input', { bubbles: true }));
+              slider.dispatchEvent(new Event('change', { bubbles: true }));
+              console.log('[CRM Helper] Volume up via slider:', slider.value);
+            } else {
+              simulateClick(volBtn);
+              console.log('[CRM Helper] Volume up: clicked mute/toggle button');
+            }
+          } else {
+            const allInputs = document.querySelectorAll('input[type="range"]');
+            for (const inp of allInputs) {
+              const r = inp.getBoundingClientRect();
+              if (r.width > 0) {
+                const step = parseFloat(inp.step) || 0.1;
+                inp.value = Math.min(1, parseFloat(inp.value) + step);
+                inp.dispatchEvent(new Event('input', { bubbles: true }));
+                inp.dispatchEvent(new Event('change', { bubbles: true }));
+                console.log('[CRM Helper] Volume up via range input:', inp.value);
+                break;
+              }
+            }
+            console.log('[CRM Helper] Volume: no audio, no mute btn, no slider found');
+          }
         }
         break;
       }
