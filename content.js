@@ -1,4 +1,7 @@
 (() => {
+  const CRM_HOST = 'victory-crm.ru';
+  const IS_CRM_PAGE = location.hostname.includes(CRM_HOST);
+
   const DEFAULT_SETTINGS = {
     lineTimerEnabled: true,
     lineTimerThreshold: 1,
@@ -24,6 +27,7 @@
     if (result.settings) {
       settings = { ...DEFAULT_SETTINGS, ...result.settings };
     }
+    if (IS_CRM_PAGE) startMonitor();
   });
 
   let prevBreakEnabled = null;
@@ -31,6 +35,7 @@
   chrome.storage.onChanged.addListener((changes) => {
     if (changes.settings) {
       settings = { ...DEFAULT_SETTINGS, ...changes.settings.newValue };
+      if (!IS_CRM_PAGE) return;
       const newBreak = settings.breakEnabled;
       if (newBreak !== prevBreakEnabled) {
         prevBreakEnabled = newBreak;
@@ -39,23 +44,29 @@
         } else {
           localStorage.removeItem('crm-helper-break');
           stopBreakTimer();
+          removeBreakIndicator();
         }
       }
     }
   });
 
-  window.addEventListener('crm-helper-caller', (e) => {
-    const { number, direction } = e.detail;
-    console.log(`[CRM Helper] ${direction === 'incoming' ? 'Входящий' : 'Исходящий'} звонок: ${number}`);
-    callActive = true;
-    ensureCallerVisible(number, direction);
-    trySendToTelegram(number, direction);
-  });
+  if (IS_CRM_PAGE) {
+    window.addEventListener('crm-helper-caller', (e) => {
+      const { number, direction } = e.detail;
+      console.log(`[CRM Helper] ${direction === 'incoming' ? 'Входящий' : 'Исходящий'} звонок: ${number}`);
+      callActive = true;
+      ensureCallerVisible(number, direction);
+      trySendToTelegram(number, direction);
+      startDialTimer();
+    });
 
-  window.addEventListener('crm-helper-bye', () => {
-    console.log('[CRM Helper] Звонок завершён');
-    callActive = false;
-  });
+    window.addEventListener('crm-helper-bye', () => {
+      console.log('[CRM Helper] Звонок завершён');
+      callActive = false;
+      stopDialTimer();
+      hideCallerPopup();
+    });
+  }
 
   let lastNumber = '';
   let lastDirection = '';
@@ -136,23 +147,23 @@
     const claim = findClaimNumber();
     const digits = phoneDigits(phone);
 
-    let lines = [`📞 ${formatPhone(phone)}`];
-    if (claim) lines.push(`📋 Заявка: №${claim}`);
-    if (info) lines.push(`ℹ️ ${info}`);
+    let lines = [`\ud83d\udcde ${formatPhone(phone)}`];
+    if (claim) lines.push(`\ud83d\udccb Заявка: \u2116${claim}`);
+    if (info) lines.push(`\u2139\ufe0f ${info}`);
 
     try {
       const lookup = await lookupPhone(phone);
       if (lookup) {
-        if (lookup.carrier) lines.push(`🏢 Оператор: ${lookup.carrier}`);
-        if (lookup.location) lines.push(`📍 Регион: ${lookup.location}`);
+        if (lookup.carrier) lines.push(`\ud83c\udfe2 Оператор: ${lookup.carrier}`);
+        if (lookup.location) lines.push(`\ud83d\udccd Регион: ${lookup.location}`);
       }
     } catch (e) {}
 
     const keyboard = {
       inline_keyboard: [
         [
-          { text: '💬 Telegram', url: `https://t.me/${digits}` },
-          { text: '📱 Max', url: `https://max.ru/${digits}` }
+          { text: '\ud83d\udfac Telegram', url: `https://t.me/${digits}` },
+          { text: '\ud83d\udcf1 Max', url: `https://max.ru/${digits}` }
         ]
       ]
     };
@@ -165,32 +176,53 @@
     await sendToTelegram(number, info);
   }
 
-  function showCallerPopupRaw(number, direction) {
-    const old = document.getElementById('ch-helper-caller');
-    if (old) old.remove();
+  function findPhoneInput() {
+    return document.querySelector('input[placeholder*="*"]')
+      || document.querySelector('input[placeholder*="96"]')
+      || document.querySelector('.chakra-input__group input[type="number"]');
+  }
 
-    const dirLabel = direction === 'incoming' ? '📥 Входящий' : '📤 Исходящий';
+  function showCallerPopupRaw(number, direction) {
+    document.querySelectorAll('#ch-helper-caller').forEach(el => el.remove());
+
+    const dirLabel = direction === 'incoming' ? '\ud83d\udce5 Входящий' : '\ud83d\udce8 Исходящий';
+    const dirColor = direction === 'incoming' ? '#4fc3f7' : '#ffb74d';
 
     const tryInsert = (attempt) => {
-      const phoneInput = document.querySelector('input[placeholder*="*"]')
-        || document.querySelector('input[placeholder*="96"]')
-        || document.querySelector('.chakra-input__group input[type="number"]');
-
+      if (document.getElementById('ch-helper-caller')) return true;
+      const phoneInput = findPhoneInput();
       if (phoneInput && phoneInput.parentNode) {
         const el = document.createElement('div');
         el.id = 'ch-helper-caller';
-        el.style.cssText = 'background:#1a1a2e;color:#00d4ff;padding:6px 10px;border-radius:6px;margin:4px 0;font-size:14px;font-weight:bold;display:flex;align-items:center;gap:8px;';
-        el.innerHTML = `<span style="font-size:12px;color:${direction === 'incoming' ? '#4fc3f7' : '#ffb74d'}">${dirLabel}</span> ${formatPhone(number)}`;
+        el.style.cssText = `
+          background: linear-gradient(135deg, #0d1b2a, #1b2838);
+          color: #e0e0e0;
+          padding: 8px 12px;
+          border-radius: 8px;
+          margin: 4px 0;
+          font-size: 13px;
+          font-weight: 600;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          border: 1px solid ${dirColor}40;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          max-width: 320px;
+        `;
+        el.innerHTML = `<span style="font-size:11px;color:${dirColor};white-space:nowrap">${dirLabel}</span><span style="color:#00d4ff;letter-spacing:0.5px">${formatPhone(number)}</span>`;
 
         const sendBtn = document.createElement('button');
-        sendBtn.textContent = '📨';
+        sendBtn.textContent = '\ud83d\udce4';
         sendBtn.title = 'Отправить в Telegram';
-        sendBtn.style.cssText = 'background:none;border:1px solid #444;border-radius:4px;padding:2px 6px;cursor:pointer;font-size:14px;';
-        sendBtn.onclick = async () => {
-          sendBtn.textContent = '⏳';
+        sendBtn.style.cssText = 'background:none;border:1px solid #333;border-radius:4px;padding:2px 6px;cursor:pointer;font-size:12px;margin-left:auto;flex-shrink:0;';
+        sendBtn.onclick = async (e) => {
+          e.stopPropagation();
+          sendBtn.textContent = '\u23f3';
           const info = findInfoField();
           await sendToTelegram(number, info);
-          sendBtn.textContent = '✅';
+          sendBtn.textContent = '\u2705';
+          setTimeout(() => { sendBtn.textContent = '\ud83d\udce4'; }, 3000);
         };
         el.appendChild(sendBtn);
 
@@ -218,6 +250,13 @@
       }
       tryInsert(0);
     }, 2000);
+  }
+
+  function hideCallerPopup() {
+    if (callerReinsertInterval) {
+      clearInterval(callerReinsertInterval);
+      callerReinsertInterval = null;
+    }
   }
 
   function ensureCallerVisible(number, direction) {
@@ -306,7 +345,8 @@
     dialTimerSeconds = 0;
     dialTimerInterval = setInterval(() => {
       dialTimerSeconds++;
-      if (dialTimerSeconds >= (settings.dialTimerThreshold || 30)) {
+      const threshold = settings.dialTimerThreshold || 30;
+      if (dialTimerSeconds >= threshold) {
         const now = Date.now();
         if (now - lastDialAction > dialCooldown) {
           lastDialAction = now;
@@ -320,6 +360,7 @@
   function stopDialTimer() {
     if (dialTimerInterval) clearInterval(dialTimerInterval);
     dialTimerInterval = null;
+    dialTimerSeconds = 0;
   }
 
   function findButtonByText(text) {
@@ -382,6 +423,7 @@
       btn.click();
       reloginStep = 0;
       chrome.storage.local.set({ reloginStep: 0 });
+      startLineTimer();
       return true;
     }
     return false;
@@ -399,9 +441,30 @@
     if (breakIndicator && breakIndicator.parentNode) return breakIndicator;
     breakIndicator = document.createElement('div');
     breakIndicator.id = 'ch-helper-break-indicator';
-    breakIndicator.style.cssText = 'position:fixed;bottom:10px;right:10px;background:#1a1a2e;color:#e0e0e0;padding:8px 14px;border-radius:8px;font-size:13px;z-index:99999;border:1px solid #444;font-family:monospace;';
+    breakIndicator.style.cssText = `
+      position: fixed;
+      bottom: 10px;
+      right: 10px;
+      background: linear-gradient(135deg, #0d1b2a, #1b2838);
+      color: #e0e0e0;
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      z-index: 99999;
+      border: 1px solid #444;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+      transition: border-color 0.3s;
+    `;
     document.body.appendChild(breakIndicator);
     return breakIndicator;
+  }
+
+  function removeBreakIndicator() {
+    if (breakIndicator && breakIndicator.parentNode) {
+      breakIndicator.remove();
+      breakIndicator = null;
+    }
   }
 
   function getBreakTimeLeft() {
@@ -577,13 +640,8 @@
 
   function startMonitor() {
     checkReloginStep();
+    startLineTimer();
     if (settings.breakEnabled) startBreakTimer();
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', startMonitor);
-  } else {
-    startMonitor();
   }
 
   console.log('[CRM Helper] Расширение запущено.');
