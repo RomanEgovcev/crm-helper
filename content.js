@@ -345,9 +345,25 @@
           lastLineAction = now;
           console.log(`[CRM Helper] LineTimer: THRESHOLD REACHED (${totalSec}s >= ${threshold}s), action=${settings.lineAction}`);
           if (settings.lineAction === 'rejoin') {
-            const btn = findButtonByText('Встать в очередь') || findButtonByText('В queue');
-            if (btn) { btn.click(); console.log('[CRM Helper] LineTimer: clicked rejoin'); }
-            else console.log('[CRM Helper] LineTimer: rejoin button NOT found');
+            const queueBtn = findQueueButton();
+            if (queueBtn) {
+              queueBtn.click();
+              console.log('[CRM Helper] LineTimer: clicked rejoin');
+            } else {
+              console.log('[CRM Helper] LineTimer: queue button not found, trying to drop call first...');
+              const hangupBtn = document.querySelector('button[aria-label="Сбросить"]');
+              if (hangupBtn) {
+                hangupBtn.click();
+                console.log('[CRM Helper] LineTimer: clicked hangup to end call before rejoin');
+                setTimeout(() => {
+                  const qBtn = findQueueButton();
+                  if (qBtn) { qBtn.click(); console.log('[CRM Helper] LineTimer: clicked rejoin after hangup'); }
+                  else console.log('[CRM Helper] LineTimer: rejoin button still not found after hangup');
+                }, 2000);
+              } else {
+                console.log('[CRM Helper] LineTimer: hangup button also not found');
+              }
+            }
           } else {
             performRelogin();
           }
@@ -394,13 +410,28 @@
   function stopDialTimer() {
     if (dialTimerInterval) clearInterval(dialTimerInterval);
     dialTimerInterval = null;
-    dialTimerSeconds = 0;
   }
 
   function findButtonByText(text) {
     const buttons = document.querySelectorAll('button');
     for (const b of buttons) {
       if (b.textContent.includes(text)) return b;
+    }
+    return null;
+  }
+
+  function findQueueButton() {
+    let btn = findButtonByText('Встать в очередь');
+    if (btn) return btn;
+    btn = findButtonByText('В queue');
+    if (btn) return btn;
+    const queuePatterns = [/очеред/i, /queue/i, /встать/i, /join/i];
+    const buttons = document.querySelectorAll('button');
+    for (const b of buttons) {
+      const txt = b.textContent.trim().toLowerCase();
+      for (const p of queuePatterns) {
+        if (p.test(txt)) return b;
+      }
     }
     return null;
   }
@@ -452,7 +483,7 @@
   }
 
   function tryClickQueue() {
-    const btn = findButtonByText('Встать в очередь');
+    const btn = findQueueButton();
     if (btn) {
       btn.click();
       reloginStep = 0;
