@@ -1,1 +1,28 @@
-੻†洢湡晩獥彴敶獲潩≮›ⰳ ∠慮敭㨢∠剃⁍效灬牥ⴠ퀠킐톲킂킾킺킾톽톂킀킾톻₌苑냐말볐뗐胑뻐닐Ⱒ ∠敶獲潩≮›㈢〮Ⱒ ∠敤捳楲瑰潩≮›퀢킐톲킂킾킼톰킂톸킇통킁킺킸₹뫐뻐뷐苑胑뻐믐賑퀠톲킀킵킼킵킽₸뷐냐퀠킻킸킽킸Ⲹ퀠킴킾킷킲킾킽₰닐䌠䵒퀠₸뻐苑뻐뇐胑냐뛐뗐뷐룐뗐퀠킽킾킼통킀₰럐닐뻐뷐近觑뗐돐뻐Ⱒ ∠数浲獩楳湯≳›≛瑳牯条≥‬愢瑣癩呥扡崢ਬ†栢獯彴数浲獩楳湯≳›≛瑨灴㩳⼯灡⹩整敬牧浡漮杲⨯Ⱒ∠瑨灴㩳⼯畮⹭潶汸湩⹫畲⨯崢ਬ†戢捡杫潲湵≤›੻††猢牥楶散睟牯敫≲›戢捡杫潲湵⹤獪ਢ†ⱽ ∠潣瑮湥彴捳楲瑰≳›ਜ਼††੻†††洢瑡档獥㨢嬠㰢污彬牵獬∾ⱝ ††∠獪㨢嬠挢湯整瑮洭楡⹮獪崢ਬ†††爢湵慟≴›搢捯浵湥彴瑳牡≴ਬ†††眢牯摬㨢∠䅍义ਢ††ⱽ †笠 ††∠慭捴敨≳›≛愼汬畟汲㹳崢ਬ†††樢≳›≛潣瑮湥⹴獪崢ਬ†††爢湵慟≴›搢捯浵湥彴瑳牡≴ †素 崠ਬ†愢瑣潩≮›੻††搢晥畡瑬灟灯灵㨢∠潰異⹰瑨汭Ⱒ †∠敤慦汵彴楴汴≥›䌢䵒䠠汥数≲ 素紊
+{
+  "manifest_version": 3,
+  "name": "CRM Helper - Автоконтроль таймеров",
+  "version": "2.0",
+  "description": "Автоматический контроль времени на линии, дозвона в CRM и отображение номера звонящего",
+  "permissions": ["storage", "activeTab"],
+  "host_permissions": ["https://api.telegram.org/*", "https://num.voxlink.ru/*"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content-main.js"],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "CRM Helper"
+  }
+}
