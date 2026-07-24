@@ -223,10 +223,17 @@
         sendBtn.style.cssText = 'background:none;border:1px solid #333;border-radius:4px;padding:2px 6px;cursor:pointer;font-size:12px;margin-left:auto;flex-shrink:0;';
         sendBtn.onclick = async (e) => {
           e.stopPropagation();
+          console.log('[CRM Helper] Telegram button clicked for', number);
           sendBtn.textContent = '\u23f3';
-          const info = findInfoField();
-          await sendToTelegram(number, info);
-          sendBtn.textContent = '\u2705';
+          try {
+            const info = findInfoField();
+            const ok = await sendToTelegram(number, info);
+            console.log('[CRM Helper] Telegram send result:', ok);
+            sendBtn.textContent = ok ? '\u2705' : '\u274c';
+          } catch (err) {
+            console.error('[CRM Helper] Telegram send error:', err);
+            sendBtn.textContent = '\u274c';
+          }
           setTimeout(() => { sendBtn.textContent = '\ud83d\udce4'; }, 3000);
         };
         el.appendChild(sendBtn);
@@ -825,8 +832,10 @@
 
   chrome.runtime.onMessage.addListener((msg) => {
     if (msg.type === 'ym-stateUpdate' && IS_CRM_PAGE) {
-      createMusicWidget();
-      updateMusicWidget(msg.state);
+      if (settings.musicWidgetEnabled !== false) {
+        createMusicWidget();
+        updateMusicWidget(msg.state);
+      }
     }
   });
 
@@ -841,12 +850,16 @@
     } else {
       console.log('[CRM Helper] Break timer disabled in settings');
     }
-    chrome.runtime.sendMessage({ type: 'ym-getState' }, (resp) => {
-      if (resp && (resp.title || resp.artist)) {
-        createMusicWidget();
-        updateMusicWidget(resp);
-      }
-    });
+    if (settings.musicWidgetEnabled !== false) {
+      createMusicWidget();
+      chrome.runtime.sendMessage({ type: 'ym-getState' }, (resp) => {
+        if (resp && (resp.title || resp.artist)) {
+          updateMusicWidget(resp);
+        } else {
+          updateMusicWidget({ title: '', artist: '', playing: false });
+        }
+      });
+    }
   }
 
   function onReady() {
