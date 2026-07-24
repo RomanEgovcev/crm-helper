@@ -19,9 +19,7 @@
 
   let settings = { ...DEFAULT_SETTINGS };
   let lastLineAction = 0;
-  let lastDialAction = 0;
-  let lineCooldown = 10000;
-  let dialCooldown = 10000;
+  const lineCooldown = 30000;
 
   chrome.storage.local.get(['settings'], (result) => {
     if (result.settings) {
@@ -316,7 +314,6 @@
 
   let lineTimerInterval = null;
   let dialTimerInterval = null;
-  let dialTimerSeconds = 0;
 
   function startLineTimer() {
     stopLineTimer();
@@ -366,19 +363,32 @@
 
   function startDialTimer() {
     stopDialTimer();
-    dialTimerSeconds = 0;
+    let lastDialActionLocal = 0;
+    const dialCooldown = 10000;
     dialTimerInterval = setInterval(() => {
-      dialTimerSeconds++;
-      const threshold = settings.dialTimerThreshold || 30;
-      if (dialTimerSeconds >= threshold) {
+      if (!settings.dialTimerEnabled) return;
+      const candidates = document.querySelectorAll('p[class*="css-"], span[class*="css-"], div[class*="css-"]');
+      let found = null;
+      for (const el of candidates) {
+        const t = el.textContent.trim();
+        const m = t.match(/Набор номера\s*\((\d+):(\d{2})\)/);
+        if (m) { found = { el, min: parseInt(m[1]), sec: parseInt(m[2]) }; break; }
+      }
+      if (!found) return;
+      const totalSec = found.min * 60 + found.sec;
+      const threshold = (settings.dialTimerThreshold || 30);
+      if (totalSec >= threshold) {
         const now = Date.now();
-        if (now - lastDialAction > dialCooldown) {
-          lastDialAction = now;
+        if (now - lastDialActionLocal > dialCooldown) {
+          lastDialActionLocal = now;
+          console.log(`[CRM Helper] DialTimer: THRESHOLD REACHED (${totalSec}s >= ${threshold}s), dropping call`);
+          const hangupBtn = document.querySelector('button[aria-label="Сбросить"]');
+          if (hangupBtn) { hangupBtn.click(); console.log('[CRM Helper] DialTimer: clicked Сбросить'); }
+          else console.log('[CRM Helper] DialTimer: Сбросить button NOT found');
           playSound();
         }
-        dialTimerSeconds = 0;
       }
-    }, 1000);
+    }, 2000);
   }
 
   function stopDialTimer() {
