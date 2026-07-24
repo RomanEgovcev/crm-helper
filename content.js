@@ -768,8 +768,10 @@
       document.head.appendChild(s);
     }
     function sendMusicAction(action, btnEl) {
+      console.log('[CRM Helper] Music button clicked:', action);
       if (btnEl) { btnEl.style.opacity = '0.5'; btnEl.style.pointerEvents = 'none'; }
       chrome.runtime.sendMessage({ type: 'ym-action', action }, (resp) => {
+        console.log('[CRM Helper] Music action response:', resp);
         if (btnEl) { btnEl.style.opacity = '1'; btnEl.style.pointerEvents = 'auto'; }
         if (resp && (resp.title || resp.artist)) updateMusicWidget(resp);
         else {

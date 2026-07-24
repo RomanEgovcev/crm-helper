@@ -84,5 +84,5 @@
 
   stateInterval = setInterval(broadcastState, 2000);
   broadcastState();
-  console.log('[CRM Helper] Music script loaded on', location.hostname);
+  console.log('[CRM Helper] Music script loaded on', location.hostname, '- buttons ready');
 })();
