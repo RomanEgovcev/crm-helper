@@ -110,6 +110,19 @@
       </div>
     </div>
 
+    <div class="section">
+      <div class="section-header">
+        <span class="section-title">Поиск заявки</span>
+      </div>
+      <div class="section-body">
+        <label class="label">Номер заявки:</label>
+        <input type="text" id="claimNumber" class="text-input" placeholder="238370694">
+        <button id="lookupClaim" class="btn-test" style="width:100%;margin-top:6px">Найти и отправить</button>
+        <div class="hint">Поиск в CRM и отправка в Telegram</div>
+        <div id="claimResult" style="margin-top:6px;font-size:11px;color:#aaa;display:none"></div>
+      </div>
+    </div>
+
     <div class="status" id="status"></div>
   </div>
   <script src="popup.js"></script>

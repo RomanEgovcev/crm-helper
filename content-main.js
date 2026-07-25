@@ -97,5 +97,62 @@
   window.WebSocket.CLOSING = _origWebSocket.CLOSING;
   window.WebSocket.CLOSED = _origWebSocket.CLOSED;
 
+  const _origFetch = window.fetch;
+
+  function extractToken() {
+    try {
+      const raw = sessionStorage.getItem('auth');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        const t = parsed.state?.token || parsed.token || null;
+        if (t && t.includes('.')) return { token: t, type: 'jwt' };
+        if (t) return { token: t, type: 'uuid' };
+      }
+    } catch (e) {}
+    return null;
+  }
+
+  window.addEventListener('crm-helper-lookup-claim', async (evt) => {
+    const claimId = evt.detail.claimId;
+    const t = extractToken();
+    const headers = { 'Content-Type': 'application/json', 'Accept': 'application/json' };
+    if (t?.token) headers['Authorization'] = 'Bearer ' + t.token;
+    const paths = [
+      `/v1/answers/id/${claimId}`,
+      `/crm/v1/answers/id/${claimId}`
+    ];
+    try {
+      for (const path of paths) {
+        try {
+          const r = await _origFetch(path, { headers, credentials: 'include' });
+          const ct = r.headers.get('content-type') || '';
+          console.log('[CRM Helper MAIN] lookupClaim: ' + path + ' → ' + r.status + ' ct=' + ct);
+          if (r.ok && ct.includes('json')) {
+            const data = await r.json();
+            console.log('[CRM Helper MAIN] lookupClaim SUCCESS:', Object.keys(data).join(','));
+            return window.dispatchEvent(new CustomEvent('crm-helper-lookup-result', { detail: { data, claimId } }));
+          }
+        } catch (e) { console.log('[CRM Helper MAIN] lookupClaim: ' + path + ' → ERR: ' + e.message); }
+      }
+      window.dispatchEvent(new CustomEvent('crm-helper-lookup-result', { detail: { error: 'All same-origin endpoints failed', claimId } }));
+    } catch (e) {
+      window.dispatchEvent(new CustomEvent('crm-helper-lookup-result', { detail: { error: e.message, claimId } }));
+    }
+  });
+
+  const _token = extractToken();
+  if (_token) {
+    window.postMessage({ type: 'crm-helper-token', token: _token.token }, '*');
+  }
+
+  const _origSetItem = sessionStorage.setItem;
+  sessionStorage.setItem = function(key, value) {
+    _origSetItem.call(this, key, value);
+    if (key === 'auth') {
+      const t = extractToken();
+      if (t) window.postMessage({ type: 'crm-helper-token', token: t.token }, '*');
+    }
+  };
+
   console.log('[CRM Helper MAIN] WebSocket interceptor + beforeunload blocker installed');
 })();

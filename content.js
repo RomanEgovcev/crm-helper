@@ -20,6 +20,11 @@
   let settings = { ...DEFAULT_SETTINGS };
   let lastLineAction = 0;
   const lineCooldown = 30000;
+  let _crmToken = null;
+
+  window.addEventListener('message', (evt) => {
+    if (evt.data?.type === 'crm-helper-token') _crmToken = evt.data.token;
+  });
 
   chrome.storage.local.get(['settings'], (result) => {
     if (result.settings) {
@@ -124,22 +129,13 @@
       console.warn('[CRM Helper] sendTelegramRaw: пустой token или chatId');
       return false;
     }
-    try {
-      const body = { chat_id: settings.telegramChatId, text: text };
-      if (replyMarkup) body.reply_markup = replyMarkup;
-      console.log('[CRM Helper] Telegram body:', JSON.stringify(body).substring(0, 200));
-      const response = await fetch(`https://api.telegram.org/bot${settings.telegramBotToken}/sendMessage`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
+    if (text.length > 4000) text = text.substring(0, 3997) + '...';
+    return new Promise((resolve) => {
+      chrome.runtime.sendMessage({ type: 'sendTelegram', text, replyMarkup }, (ok) => {
+        console.log('[CRM Helper] Telegram via BG:', ok);
+        resolve(ok || false);
       });
-      const result = await response.json();
-      console.log('[CRM Helper] Telegram response:', JSON.stringify(result).substring(0, 200));
-      return response.ok;
-    } catch (e) {
-      console.error('[CRM Helper] Ошибка Telegram:', e);
-      return false;
-    }
+    });
   }
 
   async function sendToTelegram(phone, info) {
@@ -152,11 +148,12 @@
 
     try {
       const lookup = await lookupPhone(phone);
+      console.log('[CRM Helper] lookupPhone result:', JSON.stringify(lookup));
       if (lookup) {
-        if (lookup.carrier) lines.push(`\ud83c\udfe2 Оператор: ${lookup.carrier}`);
-        if (lookup.location) lines.push(`\ud83d\udccd Регион: ${lookup.location}`);
+        if (lookup.operator) lines.push(`🏢 Оператор: ${lookup.operator}`);
+        if (lookup.region) lines.push(`📍 Регион: ${lookup.region}`);
       }
-    } catch (e) {}
+    } catch (e) { console.error('[CRM Helper] lookupPhone error:', e); }
 
     const keyboard = {
       inline_keyboard: [
@@ -357,18 +354,17 @@
               queueBtn.click();
               console.log('[CRM Helper] LineTimer: clicked rejoin');
             } else {
-              console.log('[CRM Helper] LineTimer: queue button not found, trying to drop call first...');
-              const hangupBtn = document.querySelector('button[aria-label="Сбросить"]');
-              if (hangupBtn) {
-                hangupBtn.click();
-                console.log('[CRM Helper] LineTimer: clicked hangup to end call before rejoin');
+              const leaveBtn = findLeaveQueueButton();
+              if (leaveBtn) {
+                console.log('[CRM Helper] LineTimer: agent already in queue, leaving first...');
+                leaveBtn.click();
                 setTimeout(() => {
                   const qBtn = findQueueButton();
-                  if (qBtn) { qBtn.click(); console.log('[CRM Helper] LineTimer: clicked rejoin after hangup'); }
-                  else console.log('[CRM Helper] LineTimer: rejoin button still not found after hangup');
+                  if (qBtn) { qBtn.click(); console.log('[CRM Helper] LineTimer: rejoin completed (left + joined)'); }
+                  else console.log('[CRM Helper] LineTimer: queue button not found after leaving');
                 }, 2000);
               } else {
-                console.log('[CRM Helper] LineTimer: hangup button also not found');
+                console.log('[CRM Helper] LineTimer: neither queue nor leave button found');
               }
             }
           } else {
@@ -445,6 +441,18 @@
     return null;
   }
 
+  function findLeaveQueueButton() {
+    const btn = findButtonByText('Выйти из очереди');
+    if (btn) { console.log('[CRM Helper] findLeaveQueueButton: found by exact text'); return btn; }
+    const buttons = document.querySelectorAll('button');
+    for (const b of buttons) {
+      const txt = b.textContent.trim().toLowerCase();
+      if (/выйти.*очеред/i.test(txt)) { console.log('[CRM Helper] findLeaveQueueButton: found by regex, text:', b.textContent.trim().slice(0, 50)); return b; }
+    }
+    console.log('[CRM Helper] findLeaveQueueButton: NOT found');
+    return null;
+  }
+
   let reloginStep = 0;
 
   function performRelogin() {
@@ -472,6 +480,8 @@
             submitBtn.click();
             reloginStep = 3;
             chrome.storage.local.set({ reloginStep: 3 });
+            console.log('[CRM Helper] Relogin step 2: submitted, starting step 3 polling in 3s');
+            setTimeout(() => checkStep3AfterLogin(), 3000);
           } else {
             console.log('[CRM Helper] Relogin step 2: login form not found yet, retrying...');
             setTimeout(() => checkReloginStep(), 2000);
@@ -836,10 +846,23 @@
     }
   }
 
-  chrome.runtime.onMessage.addListener((msg) => {
+  chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (msg.type === 'ym-stateUpdate' && IS_CRM_PAGE) {
       createMusicWidget();
       updateMusicWidget(msg.state);
+    }
+    if (msg.type === 'lookupClaim' && IS_CRM_PAGE) {
+      const claimId = msg.claimId;
+      console.log('[CRM Helper] lookupClaim: id=' + claimId + ' (via MAIN world same-origin)');
+      const handler = (evt) => {
+        const result = evt.detail;
+        window.removeEventListener('crm-helper-lookup-result', handler);
+        console.log('[CRM Helper] lookupClaim result:', result.error ? 'error=' + result.error : 'success');
+        sendResponse(result);
+      };
+      window.addEventListener('crm-helper-lookup-result', handler);
+      window.dispatchEvent(new CustomEvent('crm-helper-lookup-claim', { detail: { claimId } }));
+      return true;
     }
   });
 

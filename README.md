@@ -80,6 +80,22 @@
 - Управление громкостью через range slider (+/-10% за клик)
 - Перетаскивание виджета мышкой
 
+### Поиск заявки по номеру
+- Ввод номера заявки в popup → поиск в CRM API → отправка в Telegram
+- Формат сообщения:
+  ```
+  📞 +7 (916) 770-00-18
+  📋 Заявка: №238370694
+  ℹ️ 1. Сафар, Московская область, 45 лет...
+  🏢 Оператор: МТС
+  📍 Регион: г. Москва и Московская область
+
+  [💬 Telegram] [📱 Max]
+  ```
+- Запрос идёт через same-origin прокси на ect-russia.ru (`/v1/answers/id/{id}`)
+- Токен авторизации извлекается из `sessionStorage` (Zustand store)
+- Автоматическое определение оператора и региона через voxlink
+
 ---
 
 ## Установка
@@ -138,12 +154,12 @@
 ```
 crm-helper/
 ├── manifest.json        MV3, два content script (MAIN + ISOLATED), background worker, alarms, music script
-├── content-main.js      MAIN world: перехват WebSocket (SIP INVITE/BYE) + блокировка beforeunload
-├── content.js           ISOLATED: UI, таймеры, перелогин, Telegram, перерывы, звук, phone lookup, music widget
-├── background.js        Service worker: CORS-free запросы к num.voxlink.ru + chrome.alarms + music tab routing
+├── content-main.js      MAIN world: перехват WebSocket (SIP INVITE/BYE) + beforeunload blocker + same-origin CRM API proxy + token extraction
+├── content.js           ISOLATED: UI, таймеры, перелогин, Telegram, перерывы, звук, phone lookup, music widget, claim search
+├── background.js        Service worker: Telegram send + phone lookup (CORS-free) + chrome.alarms + music tab routing
 ├── music.js             Content script для music.yandex.ru: play/pause/next/prev/volume через MediaSession + DOM
-├── popup.html           Панель настроек
-├── popup.js             Загрузка/сохранение настроек
+├── popup.html           Панель настроек + поиск заявки
+├── popup.js             Загрузка/сохранение настроек + поиск заявки в CRM API
 ├── popup.css            Тёмная тема
 └── README.md            Документация
 ```

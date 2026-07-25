@@ -12,7 +12,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           if (!d || !d.operator) return sendResponse(null);
           let location = d.region || '';
           if (d.old_operator) location += ` (was: ${d.old_operator})`;
-          sendResponse({ carrier: d.operator, location, country: 'RU' });
+          sendResponse({ operator: d.operator, region: d.region || '', country: 'RU' });
         })
         .catch(() => sendResponse(null));
       return true;
@@ -35,6 +35,29 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       chrome.alarms.clear(BREAK_ALARM_NAME);
       sendResponse(true);
       return false;
+    }
+
+    if (msg.type === 'sendTelegram') {
+      const { text, replyMarkup } = msg;
+      chrome.storage.local.get('settings', (result) => {
+        const s = result.settings || {};
+        const { telegramBotToken, telegramChatId } = s;
+        if (!telegramBotToken || !telegramChatId) { sendResponse(false); return; }
+        const body = { chat_id: telegramChatId, text };
+        if (replyMarkup) body.reply_markup = replyMarkup;
+        fetch(`https://api.telegram.org/bot${telegramBotToken}/sendMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        }).then(r => r.json().then(j => {
+          console.log('[BG] Telegram: ' + r.status, JSON.stringify(j).substring(0, 300));
+          sendResponse(r.ok);
+        })).catch(e => {
+          console.error('[BG] Telegram error:', e.message);
+          sendResponse(false);
+        });
+      });
+      return true;
     }
 
     if (msg.type === 'ym-stateChanged') {

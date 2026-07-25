@@ -173,5 +173,64 @@ document.addEventListener('DOMContentLoaded', () => {
   telegramBotToken.addEventListener('input', saveSettings);
   telegramChatId.addEventListener('input', saveSettings);
 
+  const claimNumber = document.getElementById('claimNumber');
+  const lookupClaim = document.getElementById('lookupClaim');
+  const claimResult = document.getElementById('claimResult');
+
+  lookupClaim.addEventListener('click', async () => {
+    const num = claimNumber.value.trim();
+    if (!num) { claimResult.style.display = 'block'; claimResult.textContent = 'Введите номер заявки'; return; }
+    claimResult.style.display = 'block'; claimResult.textContent = 'Поиск...';
+    let s = {};
+    try { s = (await chrome.storage.local.get('settings')).settings || {}; } catch (e) {}
+    if (!s.telegramBotToken || !s.telegramChatId) { claimResult.textContent = 'Настройте Telegram в настройках'; return; }
+    try {
+      const tabs = await chrome.tabs.query({ url: ['*://victory-crm.ru/*', '*://ect-russia.ru/*'] });
+      if (!tabs.length) { claimResult.textContent = 'Откройте CRM в браузере'; return; }
+      chrome.tabs.sendMessage(tabs[0].id, { type: 'lookupClaim', claimId: num }, async (resp) => {
+        if (chrome.runtime.lastError || !resp) { claimResult.textContent = 'Ошибка связи с CRM'; return; }
+        if (resp.error) { claimResult.textContent = 'Ошибка: ' + resp.error; return; }
+        const d = resp.data;
+        const rawPhone = d.mobile_tel || d.phone || d.phone_number || d.client_phone || d.number || '';
+        const name = d.name || d.name_project || d.client_name || d.answer_name || '';
+        const claim = d.id || d.answer_id || num;
+
+        const digits = rawPhone.replace(/\D/g, '');
+        let formattedPhone = rawPhone;
+        if (digits.length >= 10) {
+          const last10 = digits.slice(-10);
+          formattedPhone = `+7 (${last10.slice(0,3)}) ${last10.slice(3,6)}-${last10.slice(6,8)}-${last10.slice(8)}`;
+        }
+
+        let lines = [`📞 ${formattedPhone || 'нет телефона'}`];
+        lines.push(`📋 Заявка: №${claim}`);
+        if (name) lines.push(`ℹ️ ${name}`);
+
+        try {
+          const lookup = await fetch(`https://num.voxlink.ru/get/?num=${digits}`).then(r => r.json()).catch(() => null);
+          if (lookup && !lookup.error) {
+            if (lookup.operator) lines.push(`🏢 Оператор: ${lookup.operator}`);
+            if (lookup.region) lines.push(`📍 Регион: ${lookup.region}`);
+          }
+        } catch (e) {}
+
+        const keyboard = { inline_keyboard: [[{ text: '\ud83d\udfac Telegram', url: `https://t.me/${digits}` }, { text: '\ud83d\udcf1 Max', url: `https://max.ru/${digits}` }]] };
+        try {
+          await new Promise((resolve, reject) => {
+            chrome.runtime.sendMessage({ type: 'sendTelegram', text: lines.join('\n'), replyMarkup: keyboard }, (ok) => {
+              if (ok) resolve(); else reject(new Error('BG send failed'));
+            });
+          });
+          claimResult.textContent = 'Отправлено в Telegram';
+          claimResult.style.color = '#4caf50';
+        } catch (e) {
+          claimResult.textContent = 'Ошибка Telegram: ' + e.message;
+          claimResult.style.color = '#f44336';
+        }
+        setTimeout(() => { claimResult.style.color = '#aaa'; }, 3000);
+      });
+    } catch (e) { claimResult.textContent = 'Ошибка: ' + e.message; }
+  });
+
   loadSettings();
 });
