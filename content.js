@@ -941,10 +941,23 @@
       oy = e.clientY - notepadEl.getBoundingClientRect().top;
       e.preventDefault();
     });
+    header.addEventListener('dblclick', (e) => {
+      if (e.target.id === 'ch-notepad-close') return;
+      notepadEl.style.left = 'auto';
+      notepadEl.style.top = 'auto';
+      notepadEl.style.right = '10px';
+      notepadEl.style.bottom = '10px';
+      saveNotepad();
+    });
     document.addEventListener('mousemove', (e) => {
       if (!dragging) return;
-      notepadEl.style.left = (e.clientX - ox) + 'px';
-      notepadEl.style.top = (e.clientY - oy) + 'px';
+      const rect = notepadEl.getBoundingClientRect();
+      let newLeft = e.clientX - ox;
+      let newTop = e.clientY - oy;
+      newLeft = Math.max(0, Math.min(newLeft, window.innerWidth - rect.width));
+      newTop = Math.max(0, Math.min(newTop, window.innerHeight - 30));
+      notepadEl.style.left = newLeft + 'px';
+      notepadEl.style.top = newTop + 'px';
       notepadEl.style.right = 'auto';
       notepadEl.style.bottom = 'auto';
     });
