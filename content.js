@@ -912,19 +912,19 @@
     const resizeHandle = notepadEl.querySelector('#ch-notepad-resize');
     const closeBtn = notepadEl.querySelector('#ch-notepad-close');
 
-    chrome.storage.local.get(['notepad'], (result) => {
-      if (result.notepad) {
-        const n = result.notepad;
-        if (n.left != null) { notepadEl.style.left = n.left + 'px'; notepadEl.style.top = n.top + 'px'; notepadEl.style.right = 'auto'; notepadEl.style.bottom = 'auto'; }
-        if (n.width) notepadEl.style.width = n.width + 'px';
-        if (n.height) notepadEl.style.height = n.height + 'px';
-        if (n.text) textarea.value = n.text;
+    try {
+      const saved = JSON.parse(localStorage.getItem('ch-notepad'));
+      if (saved) {
+        if (saved.left != null) { notepadEl.style.left = saved.left + 'px'; notepadEl.style.top = saved.top + 'px'; notepadEl.style.right = 'auto'; notepadEl.style.bottom = 'auto'; }
+        if (saved.width) notepadEl.style.width = saved.width + 'px';
+        if (saved.height) notepadEl.style.height = saved.height + 'px';
+        if (saved.text) textarea.value = saved.text;
       }
-    });
+    } catch (e) {}
 
     function saveNotepad() {
       const rect = notepadEl.getBoundingClientRect();
-      chrome.storage.local.set({ notepad: { left: rect.left, top: rect.top, width: rect.width, height: rect.height, text: textarea.value } });
+      try { localStorage.setItem('ch-notepad', JSON.stringify({ left: rect.left, top: rect.top, width: rect.width, height: rect.height, text: textarea.value })); } catch (e) {}
     }
 
     let saveTimeout = null;
