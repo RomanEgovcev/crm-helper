@@ -35,6 +35,9 @@
       musicWidget.style.display = 'none';
       console.log('[CRM Helper] Music widget hidden (disabled in settings)');
     }
+    if (settings.notepadEnabled === false && notepadEl) {
+      notepadEl.style.display = 'none';
+    }
   });
 
   let prevBreakEnabled = null;
@@ -59,6 +62,7 @@
       } else if (settings.musicWidgetEnabled !== false && musicWidget) {
         musicWidget.style.display = 'flex';
       }
+      if (settings.notepadEnabled === false) { hideNotepad(); } else { showNotepad(); }
     }
   });
 
@@ -856,6 +860,136 @@
     }
   }
 
+  let notepadEl = null;
+
+  function createNotepad() {
+    if (notepadEl && notepadEl.parentNode) return notepadEl;
+    if (!document.body) return null;
+    console.log('[CRM Helper] Creating notepad');
+    notepadEl = document.createElement('div');
+    notepadEl.id = 'ch-helper-notepad';
+    notepadEl.style.cssText = `
+      position: fixed; bottom: 10px; right: 10px;
+      width: 320px; height: 260px; min-width: 180px; min-height: 120px;
+      background: #1a1a2e; color: #e0e0e0;
+      border: 1px solid #444; border-radius: 10px;
+      z-index: 99998;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+      display: flex; flex-direction: column;
+      overflow: hidden;
+    `;
+    notepadEl.innerHTML = `
+      <div id="ch-notepad-header" style="
+        display:flex; align-items:center; justify-content:space-between;
+        padding: 6px 10px; cursor: move; user-select: none;
+        background: linear-gradient(135deg, #16213e, #0f3460);
+        border-bottom: 1px solid #333;
+      ">
+        <span style="font-size:12px; font-weight:600; color:#aaa;">📝 Блокнот</span>
+        <button id="ch-notepad-close" style="
+          background:none; border:none; color:#888; cursor:pointer;
+          font-size:16px; line-height:1; padding:0 2px;
+        " title="Закрыть">\u00d7</button>
+      </div>
+      <textarea id="ch-notepad-textarea" style="
+        flex:1; width:100%; border:none; outline:none; resize:none;
+        background:#0d1117; color:#c9d1d9; padding:8px 10px;
+        font-family: inherit; font-size: 13px; line-height: 1.4;
+        box-sizing: border-box;
+      " placeholder="Заметки..."></textarea>
+      <div id="ch-notepad-resize" style="
+        position:absolute; bottom:0; right:0;
+        width:16px; height:16px; cursor:nw-resize;
+        background:linear-gradient(135deg, transparent 50%, #555 50%);
+        border-radius: 0 0 10px 0;
+      "></div>
+    `;
+    document.body.appendChild(notepadEl);
+
+    const header = notepadEl.querySelector('#ch-notepad-header');
+    const textarea = notepadEl.querySelector('#ch-notepad-textarea');
+    const resizeHandle = notepadEl.querySelector('#ch-notepad-resize');
+    const closeBtn = notepadEl.querySelector('#ch-notepad-close');
+
+    chrome.storage.local.get(['notepad'], (result) => {
+      if (result.notepad) {
+        const n = result.notepad;
+        if (n.left != null) { notepadEl.style.left = n.left + 'px'; notepadEl.style.top = n.top + 'px'; notepadEl.style.right = 'auto'; notepadEl.style.bottom = 'auto'; }
+        if (n.width) notepadEl.style.width = n.width + 'px';
+        if (n.height) notepadEl.style.height = n.height + 'px';
+        if (n.text) textarea.value = n.text;
+      }
+    });
+
+    function saveNotepad() {
+      const rect = notepadEl.getBoundingClientRect();
+      chrome.storage.local.set({ notepad: { left: rect.left, top: rect.top, width: rect.width, height: rect.height, text: textarea.value } });
+    }
+
+    let saveTimeout = null;
+    textarea.addEventListener('input', () => {
+      clearTimeout(saveTimeout);
+      saveTimeout = setTimeout(saveNotepad, 500);
+    });
+
+    let dragging = false, ox, oy;
+    header.addEventListener('mousedown', (e) => {
+      if (e.target.id === 'ch-notepad-close') return;
+      dragging = true;
+      ox = e.clientX - notepadEl.getBoundingClientRect().left;
+      oy = e.clientY - notepadEl.getBoundingClientRect().top;
+      e.preventDefault();
+    });
+    document.addEventListener('mousemove', (e) => {
+      if (!dragging) return;
+      notepadEl.style.left = (e.clientX - ox) + 'px';
+      notepadEl.style.top = (e.clientY - oy) + 'px';
+      notepadEl.style.right = 'auto';
+      notepadEl.style.bottom = 'auto';
+    });
+    document.addEventListener('mouseup', () => { if (dragging) { dragging = false; saveNotepad(); } });
+
+    let resizing = false, rw, rh, rx, ry;
+    resizeHandle.addEventListener('mousedown', (e) => {
+      resizing = true;
+      rw = notepadEl.getBoundingClientRect().width;
+      rh = notepadEl.getBoundingClientRect().height;
+      rx = e.clientX;
+      ry = e.clientY;
+      e.preventDefault();
+      e.stopPropagation();
+    });
+    document.addEventListener('mousemove', (e) => {
+      if (!resizing) return;
+      notepadEl.style.width = Math.max(180, rw + (e.clientX - rx)) + 'px';
+      notepadEl.style.height = Math.max(120, rh + (e.clientY - ry)) + 'px';
+    });
+    document.addEventListener('mouseup', () => { if (resizing) { resizing = false; saveNotepad(); } });
+
+    closeBtn.addEventListener('click', () => { notepadEl.style.display = 'none'; });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && notepadEl && notepadEl.style.display !== 'none' && document.activeElement === textarea) {
+        notepadEl.style.display = 'none';
+      }
+    });
+
+    return notepadEl;
+  }
+
+  function showNotepad() {
+    if (notepadEl) {
+      notepadEl.style.display = 'flex';
+    } else {
+      createNotepad();
+    }
+  }
+
+  function hideNotepad() {
+    if (notepadEl) notepadEl.style.display = 'none';
+  }
+
   chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (msg.type === 'ym-stateUpdate' && IS_CRM_PAGE) {
       if (settings.musicWidgetEnabled !== false) createMusicWidget();
@@ -888,6 +1022,7 @@
       console.log('[CRM Helper] Break timer disabled in settings');
     }
     if (settings.musicWidgetEnabled !== false) createMusicWidget();
+    if (settings.notepadEnabled !== false) createNotepad();
     chrome.runtime.sendMessage({ type: 'ym-getState' }, (resp) => {
       if (resp) updateMusicWidget(resp);
     });
