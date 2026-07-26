@@ -30,6 +30,11 @@
     if (result.settings) {
       settings = { ...DEFAULT_SETTINGS, ...result.settings };
     }
+    console.log('[CRM Helper] Settings loaded, musicWidgetEnabled=' + settings.musicWidgetEnabled);
+    if (settings.musicWidgetEnabled === false && musicWidget) {
+      musicWidget.style.display = 'none';
+      console.log('[CRM Helper] Music widget hidden (disabled in settings)');
+    }
   });
 
   let prevBreakEnabled = null;
@@ -48,6 +53,11 @@
           stopBreakTimer();
           removeBreakIndicator();
         }
+      }
+      if (settings.musicWidgetEnabled === false && musicWidget) {
+        musicWidget.style.display = 'none';
+      } else if (settings.musicWidgetEnabled !== false && musicWidget) {
+        musicWidget.style.display = 'flex';
       }
     }
   });
@@ -848,7 +858,7 @@
 
   chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (msg.type === 'ym-stateUpdate' && IS_CRM_PAGE) {
-      createMusicWidget();
+      if (settings.musicWidgetEnabled !== false) createMusicWidget();
       updateMusicWidget(msg.state);
     }
     if (msg.type === 'lookupClaim' && IS_CRM_PAGE) {
@@ -877,7 +887,7 @@
     } else {
       console.log('[CRM Helper] Break timer disabled in settings');
     }
-    createMusicWidget();
+    if (settings.musicWidgetEnabled !== false) createMusicWidget();
     chrome.runtime.sendMessage({ type: 'ym-getState' }, (resp) => {
       if (resp) updateMusicWidget(resp);
     });

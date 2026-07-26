@@ -26,6 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const telegramChatId = document.getElementById('telegramChatId');
 
   const status = document.getElementById('status');
+  const musicWidgetEnabled = document.getElementById('musicWidgetEnabled');
 
   function loadSettings() {
     chrome.storage.local.get(['settings'], (result) => {
@@ -51,6 +52,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       telegramBotToken.value = s.telegramBotToken || '';
       telegramChatId.value = s.telegramChatId || '';
+      musicWidgetEnabled.checked = s.musicWidgetEnabled !== undefined ? s.musicWidgetEnabled : true;
 
       updateBodyVisibility();
     });
@@ -69,7 +71,8 @@ document.addEventListener('DOMContentLoaded', () => {
       breakWorkMinutes: parseInt(breakWorkMinutes.value),
       breakRestMinutes: parseInt(breakRestMinutes.value),
       telegramBotToken: telegramBotToken.value,
-      telegramChatId: telegramChatId.value
+      telegramChatId: telegramChatId.value,
+      musicWidgetEnabled: musicWidgetEnabled.checked
     };
     chrome.storage.local.set({ settings }, () => {
       status.textContent = 'Сохранено';
@@ -172,6 +175,7 @@ document.addEventListener('DOMContentLoaded', () => {
   breakRestMinutes.addEventListener('input', () => { breakRestValue.textContent = breakRestMinutes.value; saveSettings(); });
   telegramBotToken.addEventListener('input', saveSettings);
   telegramChatId.addEventListener('input', saveSettings);
+  musicWidgetEnabled.addEventListener('change', saveSettings);
 
   const claimNumber = document.getElementById('claimNumber');
   const lookupClaim = document.getElementById('lookupClaim');
