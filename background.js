@@ -2,8 +2,28 @@ const BREAK_ALARM_NAME = 'crm-helper-break-phase';
 
 let lastMusicState = { title: '', artist: '', playing: false };
 
+const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbwmCL4BOCZv2Qhn1xM4hfdaIzYRMMBKXBmOKk7U1kUhHw8YX32RaI23m8lrUxrn4Ouk1A/exec';
+
+function sendToSheets(data) {
+  return fetch(SHEETS_URL, {
+    method: 'POST',
+    body: JSON.stringify(data)
+  }).then(r => r.json()).then(j => {
+    console.log('[BG] Sheets response:', JSON.stringify(j));
+    return j;
+  }).catch(e => {
+    console.log('[BG] Sheets error:', e.message);
+    return null;
+  });
+}
+
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   try {
+    if (msg.type === 'sheets') {
+      sendToSheets(msg.data).then(r => sendResponse(r));
+      return true;
+    }
+
     if (msg.type === 'lookupPhone') {
       const digits = msg.digits;
       fetch(`https://num.voxlink.ru/get/?num=${digits}`)
