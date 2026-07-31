@@ -185,6 +185,15 @@ document.addEventListener('DOMContentLoaded', () => {
   const lookupClaim = document.getElementById('lookupClaim');
   const claimResult = document.getElementById('claimResult');
 
+  async function pollStorage(key, timeoutMs) {
+    for (let i = 0; i < Math.ceil(timeoutMs / 500); i++) {
+      await new Promise(r => setTimeout(r, 500));
+      const obj = await chrome.storage.local.get(key);
+      if (obj[key]) { chrome.storage.local.remove(key); return obj[key]; }
+    }
+    return null;
+  }
+
   lookupClaim.addEventListener('click', async () => {
     const num = claimNumber.value.trim();
     if (!num) { claimResult.style.display = 'block'; claimResult.textContent = 'Введите номер заявки'; return; }
@@ -195,49 +204,90 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const tabs = await chrome.tabs.query({ url: ['*://victory-crm.ru/*', '*://ect-russia.ru/*'] });
       if (!tabs.length) { claimResult.textContent = 'Откройте CRM в браузере'; return; }
-      chrome.tabs.sendMessage(tabs[0].id, { type: 'lookupClaim', claimId: num }, async (resp) => {
-        if (chrome.runtime.lastError || !resp) { claimResult.textContent = 'Ошибка связи с CRM'; return; }
-        if (resp.error) { claimResult.textContent = 'Ошибка: ' + resp.error; return; }
-        const d = resp.data;
-        const rawPhone = d.mobile_tel || d.phone || d.phone_number || d.client_phone || d.number || '';
-        const name = d.name || d.name_project || d.client_name || d.answer_name || '';
-        const claim = d.id || d.answer_id || num;
+      chrome.tabs.sendMessage(tabs[0].id, { type: 'lookupClaim', claimId: num });
+      const resp = await pollStorage('_lookupResult', 15000);
+      if (!resp) { claimResult.textContent = 'Ошибка: Таймаут'; return; }
+      if (resp.error) { claimResult.textContent = 'Ошибка: ' + resp.error; return; }
+      const d = resp.data;
+      const rawPhone = d.mobile_tel || d.phone || d.phone_number || d.client_phone || d.number || '';
+      const name = d.name || d.name_project || d.client_name || d.answer_name || '';
+      const claim = d.id || d.answer_id || num;
 
-        const digits = rawPhone.replace(/\D/g, '');
-        let formattedPhone = rawPhone;
-        if (digits.length >= 10) {
-          const last10 = digits.slice(-10);
-          formattedPhone = `+7 (${last10.slice(0,3)}) ${last10.slice(3,6)}-${last10.slice(6,8)}-${last10.slice(8)}`;
+      const digits = rawPhone.replace(/\D/g, '');
+      let formattedPhone = rawPhone;
+      if (digits.length >= 10) {
+        const last10 = digits.slice(-10);
+        formattedPhone = `+7 (${last10.slice(0,3)}) ${last10.slice(3,6)}-${last10.slice(6,8)}-${last10.slice(8)}`;
+      }
+
+      let lines = [`📞 ${formattedPhone || 'нет телефона'}`];
+      lines.push(`📋 Заявка: №${claim}`);
+      if (name) lines.push(`ℹ️ ${name}`);
+
+      try {
+        const lookup = await fetch(`https://num.voxlink.ru/get/?num=${digits}`).then(r => r.json()).catch(() => null);
+        if (lookup && !lookup.error) {
+          if (lookup.operator) lines.push(`🏢 Оператор: ${lookup.operator}`);
+          if (lookup.region) lines.push(`📍 Регион: ${lookup.region}`);
         }
+      } catch (e) {}
 
-        let lines = [`📞 ${formattedPhone || 'нет телефона'}`];
-        lines.push(`📋 Заявка: №${claim}`);
-        if (name) lines.push(`ℹ️ ${name}`);
-
-        try {
-          const lookup = await fetch(`https://num.voxlink.ru/get/?num=${digits}`).then(r => r.json()).catch(() => null);
-          if (lookup && !lookup.error) {
-            if (lookup.operator) lines.push(`🏢 Оператор: ${lookup.operator}`);
-            if (lookup.region) lines.push(`📍 Регион: ${lookup.region}`);
-          }
-        } catch (e) {}
-
-        const keyboard = { inline_keyboard: [[{ text: '\ud83d\udfac Telegram', url: `https://t.me/${digits}` }, { text: '\ud83d\udcf1 Max', url: `https://max.ru/${digits}` }]] };
-        try {
-          await new Promise((resolve, reject) => {
-            chrome.runtime.sendMessage({ type: 'sendTelegram', text: lines.join('\n'), replyMarkup: keyboard }, (ok) => {
-              if (ok) resolve(); else reject(new Error('BG send failed'));
-            });
+      const keyboard = { inline_keyboard: [[{ text: '\ud83d\udfac Telegram', url: `https://t.me/${digits}` }, { text: '\ud83d\udcf1 Max', url: `https://max.ru/${digits}` }]] };
+      try {
+        await new Promise((resolve, reject) => {
+          chrome.runtime.sendMessage({ type: 'sendTelegram', text: lines.join('\n'), replyMarkup: keyboard }, (ok) => {
+            if (ok) resolve(); else reject(new Error('BG send failed'));
           });
-          claimResult.textContent = 'Отправлено в Telegram';
-          claimResult.style.color = '#4caf50';
-        } catch (e) {
-          claimResult.textContent = 'Ошибка Telegram: ' + e.message;
-          claimResult.style.color = '#f44336';
-        }
-        setTimeout(() => { claimResult.style.color = '#aaa'; }, 3000);
-      });
+        });
+        claimResult.textContent = 'Отправлено в Telegram';
+        claimResult.style.color = '#4caf50';
+      } catch (e) {
+        claimResult.textContent = 'Ошибка Telegram: ' + e.message;
+        claimResult.style.color = '#f44336';
+      }
+      setTimeout(() => { claimResult.style.color = '#aaa'; }, 3000);
     } catch (e) { claimResult.textContent = 'Ошибка: ' + e.message; }
+  });
+
+  const updateClaimBtn = document.getElementById('updateClaim');
+  const claimEditText = document.getElementById('claimEditText');
+  const updateResult = document.getElementById('updateResult');
+
+  updateClaimBtn.addEventListener('click', async () => {
+    const num = claimNumber.value.trim();
+    const text = claimEditText.value.trim();
+    if (!num || !text) { updateResult.style.display = 'block'; updateResult.textContent = 'Заполните номер и текст'; return; }
+    updateResult.style.display = 'block'; updateResult.textContent = 'Обновление...';
+    try {
+      const tabs = await chrome.tabs.query({ url: ['*://victory-crm.ru/*', '*://ect-russia.ru/*'] });
+      if (!tabs.length) { updateResult.textContent = 'Откройте CRM в браузере'; return; }
+      chrome.tabs.sendMessage(tabs[0].id, { type: 'updateClaim', claimId: num, info: text });
+      const resp = await pollStorage('_updateResult', 15000);
+      if (!resp) { updateResult.textContent = 'Ошибка: Таймаут'; return; }
+      if (resp.error) { updateResult.textContent = 'Ошибка: ' + resp.error; return; }
+      updateResult.textContent = 'Текст изменён';
+      updateResult.style.color = '#4caf50';
+      setTimeout(() => { updateResult.style.color = '#aaa'; }, 3000);
+    } catch (e) { updateResult.textContent = 'Ошибка: ' + e.message; }
+  });
+
+  const restoreBtn = document.getElementById('restoreQueue');
+  const restoreResult = document.getElementById('restoreResult');
+
+  restoreBtn.addEventListener('click', async () => {
+    restoreResult.style.display = 'block'; restoreResult.textContent = 'Отправка restore...';
+    try {
+      const tabs = await chrome.tabs.query({ url: ['*://victory-crm.ru/*', '*://ect-russia.ru/*'] });
+      if (!tabs.length) { restoreResult.textContent = 'Откройте CRM в браузере'; return; }
+      chrome.tabs.sendMessage(tabs[0].id, { type: 'restoreQueue' });
+      const resp = await pollStorage('_restoreResult', 15000);
+      if (!resp) { restoreResult.textContent = 'Ошибка: Таймаут'; return; }
+      if (resp.error) { restoreResult.textContent = 'Ошибка: ' + resp.error; return; }
+      const body = resp.body ? ' ' + JSON.stringify(resp.body) : '';
+      restoreResult.textContent = `HTTP ${resp.http}${body} | in_queue: ${resp.inQueue} | ${resp.time}`;
+      restoreResult.style.color = resp.ok ? '#4caf50' : '#f44336';
+      setTimeout(() => { restoreResult.style.color = '#aaa'; }, 5000);
+    } catch (e) { restoreResult.textContent = 'Ошибка: ' + e.message; }
   });
 
   loadSettings();

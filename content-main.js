@@ -296,4 +296,57 @@
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', hookLoginForm);
   else hookLoginForm();
+
+  window.addEventListener('crm-helper-update-claim', async (evt) => {
+    const { claimId, info } = evt.detail;
+    const t = extractToken();
+    const headers = { 'Content-Type': 'application/json', 'Accept': 'application/json' };
+    if (t?.token) headers['Authorization'] = 'Bearer ' + t.token;
+    try {
+      const getResp = await _origFetch('/v1/answers/id/' + claimId, { headers, credentials: 'include' });
+      if (!getResp.ok) { window.dispatchEvent(new CustomEvent('crm-helper-update-result', { detail: { error: 'GET failed: ' + getResp.status } })); return; }
+      const existing = await getResp.json();
+      const patchResp = await _origFetch('/v1/answers/name-answer/' + claimId, {
+        method: 'PATCH', headers, credentials: 'include',
+        body: JSON.stringify({ name: info, extra_fields: existing.extra_fields || [] })
+      });
+      const result = patchResp.ok ? { ok: true } : { error: 'PATCH failed: ' + patchResp.status };
+      window.dispatchEvent(new CustomEvent('crm-helper-update-result', { detail: result }));
+    } catch (e) {
+      window.dispatchEvent(new CustomEvent('crm-helper-update-result', { detail: { error: e.message } }));
+    }
+  });
+
+  function ekbTime() {
+    const d = new Date();
+    const ekb = new Date(d.getTime() + 5 * 60 * 60 * 1000);
+    return String(ekb.getUTCFullYear()) + '-' +
+      String(ekb.getUTCMonth() + 1).padStart(2, '0') + '-' +
+      String(ekb.getUTCDate()).padStart(2, '0') + ' ' +
+      String(ekb.getUTCHours()).padStart(2, '0') + ':' +
+      String(ekb.getUTCMinutes()).padStart(2, '0') + ':' +
+      String(ekb.getUTCSeconds()).padStart(2, '0');
+  }
+
+  window.addEventListener('crm-helper-restore-queue', async () => {
+    const t = extractToken();
+    const headers = { 'Content-Type': 'application/json', 'Accept': 'application/json' };
+    if (t?.token) headers['Authorization'] = 'Bearer ' + t.token;
+    const time = ekbTime();
+    try {
+      const restoreResp = await _origFetch('/v1/user/queue-status/restore', { method: 'POST', headers, credentials: 'include' });
+      let body = null;
+      try { body = await restoreResp.json(); } catch (e) {}
+      let inQueue = null;
+      try {
+        const q = await _origFetch('/v1/user/queue-status', { headers, credentials: 'include' });
+        if (q.ok) { const j = await q.json(); inQueue = j.in_queue; }
+      } catch (e) {}
+      window.dispatchEvent(new CustomEvent('crm-helper-restore-result', { detail: {
+        ok: restoreResp.ok, http: restoreResp.status, body, inQueue, time
+      } }));
+    } catch (e) {
+      window.dispatchEvent(new CustomEvent('crm-helper-restore-result', { detail: { ok: false, error: e.message, time } }));
+    }
+  });
 })();

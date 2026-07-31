@@ -132,6 +132,17 @@
 
     <div class="section">
       <div class="section-header">
+        <span class="section-title">Очередь / Постановка влево</span>
+      </div>
+      <div class="section-body">
+        <button id="restoreQueue" class="btn-test" style="width:100%;margin-top:6px">Вернуть в очередь влево (restore)</button>
+        <div class="hint">Действует на текущую сессию CRM, время ЕКБ (UTC+5)</div>
+        <div id="restoreResult" style="margin-top:6px;font-size:11px;color:#aaa;display:none"></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header">
         <span class="section-title">Поиск заявки</span>
       </div>
       <div class="section-body">
@@ -140,6 +151,19 @@
         <button id="lookupClaim" class="btn-test" style="width:100%;margin-top:6px">Найти и отправить</button>
         <div class="hint">Поиск в CRM и отправка в Telegram</div>
         <div id="claimResult" style="margin-top:6px;font-size:11px;color:#aaa;display:none"></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <span class="section-title">Изменение текста заявки</span>
+      </div>
+      <div class="section-body">
+        <label class="label">Новый текст:</label>
+        <input type="text" id="claimEditText" class="text-input" placeholder="Введите новый текст">
+        <button id="updateClaim" class="btn-test" style="width:100%;margin-top:6px">Изменить текст</button>
+        <div class="hint">Номер заявки берётся из поля выше</div>
+        <div id="updateResult" style="margin-top:6px;font-size:11px;color:#aaa;display:none"></div>
       </div>
     </div>
 

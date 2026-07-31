@@ -1015,10 +1015,36 @@
         const result = evt.detail;
         window.removeEventListener('crm-helper-lookup-result', handler);
         console.log('[CRM Helper] lookupClaim result:', result.error ? 'error=' + result.error : 'success');
-        sendResponse(result);
+        chrome.storage.local.set({ _lookupResult: result });
       };
       window.addEventListener('crm-helper-lookup-result', handler);
       window.dispatchEvent(new CustomEvent('crm-helper-lookup-claim', { detail: { claimId } }));
+      return true;
+    }
+    if (msg.type === 'updateClaim' && IS_CRM_PAGE) {
+      const claimId = msg.claimId;
+      const info = msg.info;
+      console.log('[CRM Helper] updateClaim: id=' + claimId);
+      const handler = (evt) => {
+        const result = evt.detail;
+        window.removeEventListener('crm-helper-update-result', handler);
+        console.log('[CRM Helper] updateClaim result:', result.error || 'ok');
+        chrome.storage.local.set({ _updateResult: result });
+      };
+      window.addEventListener('crm-helper-update-result', handler);
+      window.dispatchEvent(new CustomEvent('crm-helper-update-claim', { detail: { claimId, info } }));
+      return true;
+    }
+    if (msg.type === 'restoreQueue' && IS_CRM_PAGE) {
+      console.log('[CRM Helper] restoreQueue triggered');
+      const handler = (evt) => {
+        const result = evt.detail;
+        window.removeEventListener('crm-helper-restore-result', handler);
+        console.log('[CRM Helper] restoreQueue result:', JSON.stringify(result));
+        chrome.storage.local.set({ _restoreResult: result });
+      };
+      window.addEventListener('crm-helper-restore-result', handler);
+      window.dispatchEvent(new CustomEvent('crm-helper-restore-queue'));
       return true;
     }
   });
