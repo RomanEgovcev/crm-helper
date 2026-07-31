@@ -572,6 +572,7 @@
   let alarmNodes = [];
   let alarmLoopTimer = null;
   let breakPhaseTransitioning = false;
+  let breakPendingWork = false;
 
   function createBreakIndicator() {
     if (breakIndicator && breakIndicator.parentNode) return breakIndicator;
@@ -620,6 +621,11 @@
       handleBreakPhaseEnd();
       return;
     }
+    if (breakPendingWork) {
+      indicator.textContent = '\u23f8 Перерыв окончен \u2014 нажми \u00abНачать работу\u00bb';
+      indicator.style.borderColor = '#ff5252';
+      return;
+    }
     if (isOnBreak) {
       indicator.textContent = `\u2615 Перерыв: ${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
       indicator.style.borderColor = '#ffb74d';
@@ -631,7 +637,7 @@
 
   function saveBreakState() {
     localStorage.setItem('crm-helper-break', JSON.stringify({
-      breakPhaseEndAt, isOnBreak
+      breakPhaseEndAt, isOnBreak, pendingWork: breakPendingWork
     }));
   }
 
@@ -640,8 +646,11 @@
       const saved = JSON.parse(localStorage.getItem('crm-helper-break'));
       if (saved) {
         isOnBreak = saved.isOnBreak || false;
+        breakPendingWork = saved.pendingWork === true;
         breakPhaseEndAt = saved.breakPhaseEndAt || 0;
-        if (breakPhaseEndAt > Date.now()) {
+        if (breakPendingWork && isOnBreak) {
+          console.log('[CRM Helper] Restored pending work confirmation state');
+        } else if (breakPhaseEndAt > Date.now()) {
           const left = Math.ceil((breakPhaseEndAt - Date.now()) / 1000);
           console.log(`[CRM Helper] Таймер перерыва восстановлен: ${isOnBreak ? 'перерыв' : 'работа'}, осталось ${left}с`);
         } else if (breakPhaseEndAt > 0) {
@@ -657,10 +666,9 @@
     if (breakPhaseTransitioning) { console.log('[CRM Helper] handleBreakPhaseEnd: skipped (transitioning)'); return; }
     breakPhaseTransitioning = true;
     if (isOnBreak) {
-      isOnBreak = false;
-      breakPhaseEndAt = Date.now() + (settings.breakWorkMinutes || 60) * 60 * 1000;
-      console.log('[CRM Helper] Break ended, sending Telegram...');
-      sendTelegramRaw('\ud83d\udcbc ПЕРЕРЫВ ОКОНЧЕН — работаем!').then(ok => console.log('[CRM Helper] Telegram result:', ok));
+      breakPendingWork = true;
+      breakPhaseEndAt = 0;
+      console.log('[CRM Helper] Break ended, waiting for user to resume work');
       startAlarmSound();
       showBreakAlarmOverlay('\ud83d\udcbc ПЕРЕРЫВ ОКОНЧЕН');
     } else {
@@ -674,6 +682,19 @@
     saveBreakState();
     scheduleBreakAlarm();
     setTimeout(() => { breakPhaseTransitioning = false; }, 500);
+  }
+
+  function startWorkPhase() {
+    stopAlarmSound();
+    if (!breakPendingWork) return;
+    breakPendingWork = false;
+    isOnBreak = false;
+    breakPhaseEndAt = Date.now() + (settings.breakWorkMinutes || 60) * 60 * 1000;
+    console.log('[CRM Helper] Work phase started by user, ends at', new Date(breakPhaseEndAt).toLocaleTimeString());
+    sendTelegramRaw('\ud83d\udcbc ПЕРЕРЫВ ОКОНЧЕН — работаем!').then(ok => console.log('[CRM Helper] Telegram result:', ok));
+    updateBreakDisplay();
+    saveBreakState();
+    scheduleBreakAlarm();
   }
 
   function scheduleBreakAlarm() {
@@ -701,6 +722,15 @@
     console.log('[CRM Helper] startBreakTimer() called');
     stopBreakTimer();
     restoreBreakState();
+    if (breakPendingWork && isOnBreak) {
+      console.log('[CRM Helper] Pending work confirmation after reload, showing overlay again');
+      updateBreakDisplay();
+      saveBreakState();
+      startAlarmSound();
+      showBreakAlarmOverlay('\ud83d\udcbc ПЕРЕРЫВ ОКОНЧЕН');
+      breakDisplayInterval = setInterval(updateBreakDisplay, 1000);
+      return;
+    }
     if (breakPhaseEndAt <= Date.now()) {
       breakPhaseEndAt = Date.now() + (settings.breakWorkMinutes || 60) * 60 * 1000;
       isOnBreak = false;
@@ -719,6 +749,8 @@
     if (breakDisplayInterval) clearInterval(breakDisplayInterval);
     breakDisplayInterval = null;
     breakPhaseEndAt = 0;
+    breakPendingWork = false;
+    stopAlarmSound();
     chrome.runtime.sendMessage({ type: 'clearBreakAlarm' });
   }
 
@@ -791,10 +823,10 @@
     overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.8);z-index:999999;display:flex;align-items:center;justify-content:center;flex-direction:column;';
     overlay.innerHTML = `
       <div style="color:#ff5252;font-size:32px;font-weight:bold;margin-bottom:20px;">${text}</div>
-      <button id="ch-helper-stop-alarm" style="background:#ff5252;color:white;border:none;padding:12px 24px;border-radius:8px;font-size:18px;cursor:pointer;">\ud83d\udd07 ВЫКЛЮЧИТЬ ЗВУК</button>
+      <button id="ch-helper-stop-alarm" style="background:#ff5252;color:white;border:none;padding:12px 24px;border-radius:8px;font-size:18px;cursor:pointer;">\u25b6 НАЧАТЬ РАБОТУ</button>
     `;
     document.body.appendChild(overlay);
-    document.getElementById('ch-helper-stop-alarm').addEventListener('click', stopAlarmSound);
+    document.getElementById('ch-helper-stop-alarm').addEventListener('click', startWorkPhase);
   }
 
   let musicWidget = null;
