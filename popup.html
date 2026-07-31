@@ -21,7 +21,7 @@
       <div class="section-body" id="lineTimerBody">
         <label class="label">Порог (минуты):</label>
         <div class="input-row">
-          <input type="range" id="lineTimerThreshold" min="1" max="30" value="1" class="slider-input">
+          <input type="range" id="lineTimerThreshold" min="1" max="7" value="1" class="slider-input">
           <span class="value-display" id="lineTimerValue">1</span>
         </div>
         <label class="label">Действие:</label>
@@ -30,6 +30,10 @@
           <option value="relogin">Перелогиниться</option>
         </select>
         <div class="hint">Действие при превышении порога</div>
+        <label class="checkbox-row">
+          <input type="checkbox" id="restoreEveryMinute">
+          <span>Restore каждую минуту</span>
+        </label>
       </div>
     </div>
 
@@ -130,6 +134,7 @@
       </div>
     </div>
 
+    <!--
     <div class="section">
       <div class="section-header">
         <span class="section-title">Очередь / Постановка влево</span>
@@ -140,6 +145,7 @@
         <div id="restoreResult" style="margin-top:6px;font-size:11px;color:#aaa;display:none"></div>
       </div>
     </div>
+    -->
 
     <div class="section">
       <div class="section-header">

@@ -97,6 +97,24 @@ h1 {
   margin-top: 6px;
 }
 
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #e0e0e0;
+  margin-top: 10px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.checkbox-row input[type="checkbox"] {
+  accent-color: #00d4ff;
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+}
+
 .toggle {
   position: relative;
   display: inline-block;

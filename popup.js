@@ -4,6 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const lineTimerValue = document.getElementById('lineTimerValue');
   const lineTimerBody = document.getElementById('lineTimerBody');
   const lineAction = document.getElementById('lineAction');
+  const restoreEveryMinute = document.getElementById('restoreEveryMinute');
 
   const dialTimerEnabled = document.getElementById('dialTimerEnabled');
   const dialTimerThreshold = document.getElementById('dialTimerThreshold');
@@ -33,9 +34,10 @@ document.addEventListener('DOMContentLoaded', () => {
     chrome.storage.local.get(['settings'], (result) => {
       const s = result.settings || {};
       lineTimerEnabled.checked = s.lineTimerEnabled !== undefined ? s.lineTimerEnabled : true;
-      lineTimerThreshold.value = s.lineTimerThreshold || 1;
-      lineTimerValue.textContent = s.lineTimerThreshold || 1;
+      lineTimerThreshold.value = Math.min(parseInt(s.lineTimerThreshold) || 1, 7);
+      lineTimerValue.textContent = lineTimerThreshold.value;
       lineAction.value = s.lineAction || 'rejoin';
+      restoreEveryMinute.checked = s.restoreEveryMinute === true;
 
       dialTimerEnabled.checked = s.dialTimerEnabled !== undefined ? s.dialTimerEnabled : true;
       dialTimerThreshold.value = s.dialTimerThreshold || 30;
@@ -65,6 +67,7 @@ document.addEventListener('DOMContentLoaded', () => {
       lineTimerEnabled: lineTimerEnabled.checked,
       lineTimerThreshold: parseInt(lineTimerThreshold.value),
       lineAction: lineAction.value,
+      restoreEveryMinute: restoreEveryMinute.checked,
       dialTimerEnabled: dialTimerEnabled.checked,
       dialTimerThreshold: parseInt(dialTimerThreshold.value),
       soundType: soundType.value,
@@ -168,6 +171,7 @@ document.addEventListener('DOMContentLoaded', () => {
   lineTimerEnabled.addEventListener('change', () => { saveSettings(); updateBodyVisibility(); });
   lineTimerThreshold.addEventListener('input', () => { lineTimerValue.textContent = lineTimerThreshold.value; saveSettings(); });
   lineAction.addEventListener('change', saveSettings);
+  restoreEveryMinute.addEventListener('change', saveSettings);
   dialTimerEnabled.addEventListener('change', () => { saveSettings(); updateBodyVisibility(); });
   dialTimerThreshold.addEventListener('input', () => { dialTimerValue.textContent = dialTimerThreshold.value; saveSettings(); });
   soundType.addEventListener('change', saveSettings);
@@ -274,21 +278,23 @@ document.addEventListener('DOMContentLoaded', () => {
   const restoreBtn = document.getElementById('restoreQueue');
   const restoreResult = document.getElementById('restoreResult');
 
-  restoreBtn.addEventListener('click', async () => {
-    restoreResult.style.display = 'block'; restoreResult.textContent = 'Отправка restore...';
-    try {
-      const tabs = await chrome.tabs.query({ url: ['*://victory-crm.ru/*', '*://ect-russia.ru/*'] });
-      if (!tabs.length) { restoreResult.textContent = 'Откройте CRM в браузере'; return; }
-      chrome.tabs.sendMessage(tabs[0].id, { type: 'restoreQueue' });
-      const resp = await pollStorage('_restoreResult', 15000);
-      if (!resp) { restoreResult.textContent = 'Ошибка: Таймаут'; return; }
-      if (resp.error) { restoreResult.textContent = 'Ошибка: ' + resp.error; return; }
-      const body = resp.body ? ' ' + JSON.stringify(resp.body) : '';
-      restoreResult.textContent = `HTTP ${resp.http}${body} | in_queue: ${resp.inQueue} | ${resp.time}`;
-      restoreResult.style.color = resp.ok ? '#4caf50' : '#f44336';
-      setTimeout(() => { restoreResult.style.color = '#aaa'; }, 5000);
-    } catch (e) { restoreResult.textContent = 'Ошибка: ' + e.message; }
-  });
+  if (restoreBtn) {
+    restoreBtn.addEventListener('click', async () => {
+      restoreResult.style.display = 'block'; restoreResult.textContent = 'Отправка restore...';
+      try {
+        const tabs = await chrome.tabs.query({ url: ['*://victory-crm.ru/*', '*://ect-russia.ru/*'] });
+        if (!tabs.length) { restoreResult.textContent = 'Откройте CRM в браузере'; return; }
+        chrome.tabs.sendMessage(tabs[0].id, { type: 'restoreQueue' });
+        const resp = await pollStorage('_restoreResult', 15000);
+        if (!resp) { restoreResult.textContent = 'Ошибка: Таймаут'; return; }
+        if (resp.error) { restoreResult.textContent = 'Ошибка: ' + resp.error; return; }
+        const body = resp.body ? ' ' + JSON.stringify(resp.body) : '';
+        restoreResult.textContent = `HTTP ${resp.http}${body} | in_queue: ${resp.inQueue} | ${resp.time}`;
+        restoreResult.style.color = resp.ok ? '#4caf50' : '#f44336';
+        setTimeout(() => { restoreResult.style.color = '#aaa'; }, 5000);
+      } catch (e) { restoreResult.textContent = 'Ошибка: ' + e.message; }
+    });
+  }
 
   loadSettings();
 });

@@ -6,6 +6,7 @@
     lineTimerEnabled: true,
     lineTimerThreshold: 1,
     lineAction: 'rejoin',
+    restoreEveryMinute: false,
     dialTimerEnabled: true,
     dialTimerThreshold: 30,
     soundType: 'alarm',
@@ -336,6 +337,7 @@
   function startLineTimer() {
     stopLineTimer();
     lastLineAction = 0;
+    let lastRestoreTick = Date.now();
     let tickCount = 0;
     lineTimerInterval = setInterval(() => {
       tickCount++;
@@ -348,6 +350,11 @@
       if (!found) {
         if (tickCount % 15 === 0) console.log(`[CRM Helper] LineTimer: no timer element found (${candidates.length} p-css candidates)`);
         return;
+      }
+      if (settings.lineTimerEnabled && settings.restoreEveryMinute && Date.now() - lastRestoreTick >= 60000) {
+        lastRestoreTick = Date.now();
+        console.log('[CRM Helper] LineTimer: restore every minute trigger');
+        triggerRestore();
       }
       const text = found.textContent.trim();
       const match = text.match(/^(\d+):(\d{2})$/);
@@ -381,6 +388,8 @@
                 console.log('[CRM Helper] LineTimer: neither queue nor leave button found');
               }
             }
+          } else if (settings.lineAction === 'restore') {
+            triggerRestore();
           } else {
             performRelogin();
           }
@@ -392,6 +401,18 @@
   function stopLineTimer() {
     if (lineTimerInterval) clearInterval(lineTimerInterval);
     lineTimerInterval = null;
+  }
+
+  function triggerRestore() {
+    console.log('[CRM Helper] restoreQueue triggered');
+    const handler = (evt) => {
+      const result = evt.detail;
+      window.removeEventListener('crm-helper-restore-result', handler);
+      console.log('[CRM Helper] restoreQueue result:', JSON.stringify(result));
+      chrome.storage.local.set({ _restoreResult: result });
+    };
+    window.addEventListener('crm-helper-restore-result', handler);
+    window.dispatchEvent(new CustomEvent('crm-helper-restore-queue'));
   }
 
   function startDialTimer() {
@@ -1036,15 +1057,7 @@
       return true;
     }
     if (msg.type === 'restoreQueue' && IS_CRM_PAGE) {
-      console.log('[CRM Helper] restoreQueue triggered');
-      const handler = (evt) => {
-        const result = evt.detail;
-        window.removeEventListener('crm-helper-restore-result', handler);
-        console.log('[CRM Helper] restoreQueue result:', JSON.stringify(result));
-        chrome.storage.local.set({ _restoreResult: result });
-      };
-      window.addEventListener('crm-helper-restore-result', handler);
-      window.dispatchEvent(new CustomEvent('crm-helper-restore-queue'));
+      triggerRestore();
       return true;
     }
   });
